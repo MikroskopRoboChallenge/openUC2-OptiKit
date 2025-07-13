@@ -60,6 +60,7 @@ interface AppStore extends AppState {
   centerView: () => void;
   saveStateToStorage: () => void;
   loadStateFromStorage: () => void;
+  downloadScreenshot: () => void;
 }
 
 export const useAppStore = create<AppStore>((set, get) => ({
@@ -175,9 +176,27 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
   rotateModule: (moduleId: string, rotation: number) => {
     set(state => ({
-      placedModules: state.placedModules.map(m => 
-        m.id === moduleId ? { ...m, rotation } : m
-      )
+      placedModules: state.placedModules.map(m => {
+        if (m.id === moduleId) {
+          const moduleDefinition = state.modules.find(mod => mod.id === m.moduleId);
+          if (!moduleDefinition) return m;
+          
+          // Calculate new footprint after rotation
+          const currentFootprint = moduleDefinition.footprint;
+          const isRotated90or270 = rotation === 90 || rotation === 270;
+          const newFootprint = isRotated90or270 ? 
+            { width: currentFootprint.height, height: currentFootprint.width } : 
+            { width: currentFootprint.width, height: currentFootprint.height };
+          
+          // Check if the rotated module would collide
+          if (state.checkCollision(m.position, newFootprint, m.layer, moduleId)) {
+            return m; // Don't rotate if it would cause collision
+          }
+          
+          return { ...m, rotation };
+        }
+        return m;
+      })
     }));
   },
 
@@ -234,6 +253,12 @@ export const useAppStore = create<AppStore>((set, get) => ({
       const moduleDefinition = state.modules.find(m => m.id === module.moduleId);
       if (!moduleDefinition) continue;
 
+      // Calculate actual footprint considering rotation
+      const isRotated90or270 = module.rotation === 90 || module.rotation === 270;
+      const actualFootprint = isRotated90or270 ? 
+        { width: moduleDefinition.footprint.height, height: moduleDefinition.footprint.width } : 
+        { width: moduleDefinition.footprint.width, height: moduleDefinition.footprint.height };
+
       // Check if rectangles overlap
       const rect1 = {
         x: position.x,
@@ -245,8 +270,8 @@ export const useAppStore = create<AppStore>((set, get) => ({
       const rect2 = {
         x: module.position.x,
         y: module.position.y,
-        width: moduleDefinition.footprint.width,
-        height: moduleDefinition.footprint.height
+        width: actualFootprint.width,
+        height: actualFootprint.height
       };
 
       if (rect1.x < rect2.x + rect2.width &&
@@ -339,5 +364,12 @@ export const useAppStore = create<AppStore>((set, get) => ({
         console.error('Failed to load state from storage:', error);
       }
     }
+  },
+
+  downloadScreenshot: () => {
+    // This will be handled by the GridCanvas component
+    // We'll emit a custom event for the canvas to capture
+    const event = new CustomEvent('download-screenshot');
+    window.dispatchEvent(event);
   }
 }));

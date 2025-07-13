@@ -61,7 +61,11 @@ export const PropertyPanel: React.FC = () => {
           </div>
           <div className="property-item">
             <label>Footprint:</label>
-            <span>{moduleDefinition.footprint.width} × {moduleDefinition.footprint.height}</span>
+            <span>
+              {module.rotation === 90 || module.rotation === 270 ? 
+                `${moduleDefinition.footprint.height} × ${moduleDefinition.footprint.width}` : 
+                `${moduleDefinition.footprint.width} × ${moduleDefinition.footprint.height}`}
+            </span>
           </div>
         </div>
 

@@ -12,7 +12,8 @@ export const Toolbar: React.FC = () => {
     redo,
     centerView,
     annotationMode,
-    setAnnotationMode
+    setAnnotationMode,
+    downloadScreenshot
   } = useAppStore();
 
   const handleExport = () => {
@@ -78,6 +79,109 @@ Best regards`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+
+  const handleExportSTL = () => {
+    const password = prompt('Enter password to export STL files:');
+    if (password === 'youseetoo') {
+      const data = exportData();
+      
+      // Create a list of unique STL files from placed modules
+      const stlFiles: string[] = [];
+      const { modules, placedModules } = useAppStore.getState();
+      
+      placedModules.forEach(placedModule => {
+        const moduleDefinition = modules.find(m => m.id === placedModule.moduleId);
+        if (moduleDefinition && moduleDefinition.cadUrl && !stlFiles.includes(moduleDefinition.cadUrl)) {
+          stlFiles.push(moduleDefinition.cadUrl);
+        }
+      });
+      
+      // Create a text file with the list of STL files
+      const stlList = stlFiles.join('\n');
+      const blob = new Blob([
+        `OpenUC2 OptiKit STL Export\n`,
+        `Generated on: ${new Date().toISOString()}\n`,
+        `\nSTL Files in this assembly:\n`,
+        stlList,
+        `\n\nLayout Configuration:\n`,
+        data
+      ], { type: 'text/plain' });
+      
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'optikit-stl-export.txt';
+      a.click();
+      URL.revokeObjectURL(url);
+      
+      alert(`STL export complete! Found ${stlFiles.length} STL files in the assembly.`);
+    } else if (password !== null) {
+      alert('Incorrect password. Access denied.');
+    }
+  };
+
+  const handleHelp = () => {
+    const helpContent = `
+OpenUC2 OptiKit - 2D Grid Builder Help
+
+BASIC USAGE:
+• Drag components from the Part Library to the grid
+• Click components to select and view properties
+• Use the rotate button to rotate selected components
+• Use layer panel to work with different Z-levels
+
+NAVIGATION:
+• Mouse wheel: Zoom in/out
+• Drag background: Pan the view
+• Center button: Reset view to center
+
+ANNOTATIONS:
+• Line tool: Click to start, click again to finish
+• Arrow tool: Click to start, click again to finish
+• Optical Axis: Dashed line for optical paths
+• Text tool: Click to place text
+
+EXPORT/IMPORT:
+• Save: Export layout to JSON file
+• Share: Send layout via email
+• Import: Load layout from JSON file
+• Screenshot: Download PNG image of assembly
+
+SHORTCUTS:
+• Grid toggle: Show/hide grid lines
+• Snap toggle: Enable/disable snap-to-grid
+• Undo/Redo: Navigate through changes
+`;
+    
+    alert(helpContent);
+  };
+
+  const handlePrivacy = () => {
+    const privacyContent = `
+OpenUC2 OptiKit - Privacy Policy
+
+DATA STORAGE:
+• Your layouts are stored locally in your browser
+• No data is sent to external servers
+• Email sharing uses your default mail client
+
+COOKIES:
+• We use localStorage to save your work
+• No tracking cookies are used
+• Data persists between sessions
+
+EXTERNAL LINKS:
+• STL files may link to external repositories
+• Module data is loaded from local CSV files
+• No personal information is collected
+
+CONTACT:
+For questions about data usage, contact:
+openUC2 team via GitHub repository
+`;
+    
+    alert(privacyContent);
   };
 
   const handleImport = () => {
@@ -206,6 +310,39 @@ Best regards`;
           title="Import Layout"
         >
           📁
+        </button>
+        <button 
+          className="toolbar-button"
+          onClick={downloadScreenshot}
+          title="Download Screenshot"
+        >
+          📸
+        </button>
+        <button 
+          className="toolbar-button"
+          onClick={handleExportSTL}
+          title="Export STL Files"
+        >
+          📦
+        </button>
+      </div>
+
+      <div className="toolbar-separator" />
+
+      <div className="toolbar-group">
+        <button 
+          className="toolbar-button"
+          onClick={handleHelp}
+          title="Help"
+        >
+          ❓
+        </button>
+        <button 
+          className="toolbar-button"
+          onClick={handlePrivacy}
+          title="Privacy"
+        >
+          🔒
         </button>
       </div>
 

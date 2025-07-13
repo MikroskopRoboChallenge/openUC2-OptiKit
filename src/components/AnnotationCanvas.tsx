@@ -28,16 +28,19 @@ export const AnnotationCanvas: React.FC<AnnotationCanvasProps> = ({
   const handleCanvasClick = (e: KonvaEventObject<MouseEvent>) => {
     if (annotationMode === 'none') return;
 
+    // Stop event propagation to prevent canvas click
+    e.cancelBubble = true;
+    
     const stage = e.target.getStage();
     if (!stage) return;
 
     const pos = stage.getPointerPosition();
     if (!pos) return;
 
-    // Transform position based on viewport
+    // Transform position based on viewport - corrected calculation
     const transformedPos = {
-      x: (pos.x - viewport.pan.x) / viewport.zoom,
-      y: (pos.y - viewport.pan.y) / viewport.zoom
+      x: pos.x / viewport.zoom - viewport.pan.x / viewport.zoom,
+      y: pos.y / viewport.zoom - viewport.pan.y / viewport.zoom
     };
 
     if (annotationMode === 'text') {
@@ -101,8 +104,8 @@ export const AnnotationCanvas: React.FC<AnnotationCanvasProps> = ({
     if (!pos) return;
 
     const transformedPos = {
-      x: (pos.x - viewport.pan.x) / viewport.zoom,
-      y: (pos.y - viewport.pan.y) / viewport.zoom
+      x: pos.x / viewport.zoom - viewport.pan.x / viewport.zoom,
+      y: pos.y / viewport.zoom - viewport.pan.y / viewport.zoom
     };
 
     // For preview, only keep the start point and current mouse position
@@ -115,7 +118,7 @@ export const AnnotationCanvas: React.FC<AnnotationCanvasProps> = ({
     return layerAnnotations.map(annotation => {
       const isSelected = selectedItemId === annotation.id;
       const strokeColor = isSelected ? '#2980b9' : (annotation.style?.color || '#000000');
-      const strokeWidth = (annotation.style?.strokeWidth || 2) * (isSelected ? 1.5 : 1);
+      const strokeWidth = ((annotation.style?.strokeWidth || 2) * (isSelected ? 1.5 : 1)) / viewport.zoom;
       
       if (annotation.type === 'text' && annotation.points && annotation.points.length > 0) {
         return (
@@ -124,7 +127,7 @@ export const AnnotationCanvas: React.FC<AnnotationCanvasProps> = ({
             x={annotation.points[0].x}
             y={annotation.points[0].y}
             text={annotation.text || ''}
-            fontSize={annotation.style?.fontSize || 14}
+            fontSize={(annotation.style?.fontSize || 14) / viewport.zoom}
             fontFamily={annotation.style?.fontFamily || 'Arial'}
             fill={strokeColor}
             onClick={() => selectItem(annotation.id, 'annotation')}
@@ -215,6 +218,7 @@ export const AnnotationCanvas: React.FC<AnnotationCanvasProps> = ({
     <Group
       onClick={handleCanvasClick}
       onMouseMove={handleMouseMove}
+      listening={true}
     >
       {renderAnnotations()}
       {renderCurrentDrawing()}
