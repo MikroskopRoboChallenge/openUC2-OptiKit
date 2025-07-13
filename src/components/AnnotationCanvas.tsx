@@ -92,7 +92,7 @@ export const AnnotationCanvas: React.FC<AnnotationCanvasProps> = ({
   };
 
   const handleMouseMove = (e: KonvaEventObject<MouseEvent>) => {
-    if (!isDrawing) return;
+    if (!isDrawing || currentPoints.length === 0) return;
 
     const stage = e.target.getStage();
     if (!stage) return;
@@ -105,7 +105,8 @@ export const AnnotationCanvas: React.FC<AnnotationCanvasProps> = ({
       y: (pos.y - viewport.pan.y) / viewport.zoom
     };
 
-    setCurrentPoints([...currentPoints, transformedPos]);
+    // For preview, only keep the start point and current mouse position
+    setCurrentPoints([currentPoints[0], transformedPos]);
   };
 
   const renderAnnotations = () => {

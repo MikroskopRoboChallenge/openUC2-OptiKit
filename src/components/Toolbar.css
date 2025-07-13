@@ -6,6 +6,31 @@
   color: white;
 }
 
+.toolbar-logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.toolbar-logo-icon {
+  width: 32px;
+  height: 32px;
+  background: linear-gradient(45deg, var(--openuc2-blue), var(--openuc2-green));
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.toolbar-logo-text {
+  font-weight: 600;
+  font-size: 14px;
+  color: white;
+}
+
 .toolbar-group {
   display: flex;
   gap: 4px;
@@ -37,13 +62,13 @@
 }
 
 .toolbar-button.active {
-  background: #3498db;
-  border-color: #2980b9;
+  background: var(--openuc2-green);
+  border-color: var(--openuc2-dark-green);
 }
 
 .toolbar-button.active:hover {
-  background: #2980b9;
-  border-color: #1f5f8b;
+  background: var(--openuc2-dark-green);
+  border-color: var(--openuc2-dark-green);
 }
 
 .toolbar-separator {
@@ -75,5 +100,9 @@
     height: 32px;
     padding: 6px 10px;
     font-size: 12px;
+  }
+  
+  .toolbar-logo-text {
+    display: none;
   }
 }

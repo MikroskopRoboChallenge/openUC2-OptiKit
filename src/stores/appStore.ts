@@ -58,6 +58,8 @@ interface AppStore extends AppState {
   redo: () => void;
   executeCommand: (command: Command) => void;
   centerView: () => void;
+  saveStateToStorage: () => void;
+  loadStateFromStorage: () => void;
 }
 
 export const useAppStore = create<AppStore>((set, get) => ({
@@ -301,5 +303,41 @@ export const useAppStore = create<AppStore>((set, get) => ({
         zoom: 1
       }
     }));
+  },
+
+  // State persistence functions
+  saveStateToStorage: () => {
+    const state = useAppStore.getState();
+    const stateToSave = {
+      layers: state.layers,
+      placedModules: state.placedModules,
+      annotations: state.annotations,
+      activeLayerId: state.activeLayerId,
+      selectedItemId: state.selectedItemId,
+      selectedItemType: state.selectedItemType,
+      grid: state.grid,
+      viewport: state.viewport,
+      annotationMode: state.annotationMode,
+      // Don't save modules as they are loaded from CSV
+      // Don't save command history
+    };
+    localStorage.setItem('openuc2-optikit-state', JSON.stringify(stateToSave));
+  },
+
+  loadStateFromStorage: () => {
+    const saved = localStorage.getItem('openuc2-optikit-state');
+    if (saved) {
+      try {
+        const parsedState = JSON.parse(saved);
+        set(state => ({
+          ...state,
+          ...parsedState,
+          modules: state.modules, // Keep loaded modules
+          history: state.history, // Keep command history
+        }));
+      } catch (error) {
+        console.error('Failed to load state from storage:', error);
+      }
+    }
   }
 }));

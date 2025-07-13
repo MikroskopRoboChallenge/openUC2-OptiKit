@@ -6,7 +6,7 @@ import type { KonvaEventObject } from 'konva/lib/Node';
 import type { Point } from '../types';
 import type Konva from 'konva';
 
-const GRID_SIZE = 20; // Number of grid cells to show
+const GRID_SIZE = 10; // Number of grid cells to show (limited to 10x10 as requested)
 const CANVAS_SIZE = 800; // Canvas size in pixels
 
 export const GridCanvas: React.FC = () => {
@@ -85,7 +85,7 @@ export const GridCanvas: React.FC = () => {
     }
   }, [modules]);
 
-  // Generate grid lines
+  // Generate grid lines and labels
   const generateGridLines = () => {
     const lines = [];
     const cellSize = grid.cellSize * viewport.zoom;
@@ -119,11 +119,55 @@ export const GridCanvas: React.FC = () => {
     return lines;
   };
 
+  // Generate grid labels (A-J for columns, 0-9 for rows)
+  const generateGridLabels = () => {
+    const labels = [];
+    const cellSize = grid.cellSize * viewport.zoom;
+    const fontSize = Math.max(10, 12 * viewport.zoom);
+
+    // Column labels (A-J)
+    for (let i = 0; i < GRID_SIZE; i++) {
+      const letter = String.fromCharCode(65 + i); // A, B, C, ...
+      labels.push(
+        <Text
+          key={`col-${i}`}
+          x={i * cellSize + cellSize / 2}
+          y={-25 * viewport.zoom}
+          text={letter}
+          fontSize={fontSize}
+          fontFamily="Arial"
+          fill="#666"
+          align="center"
+          width={cellSize}
+        />
+      );
+    }
+
+    // Row labels (0-9)
+    for (let i = 0; i < GRID_SIZE; i++) {
+      labels.push(
+        <Text
+          key={`row-${i}`}
+          x={-25 * viewport.zoom}
+          y={i * cellSize + cellSize / 2 - fontSize / 2}
+          text={i.toString()}
+          fontSize={fontSize}
+          fontFamily="Arial"
+          fill="#666"
+          align="center"
+          width={20 * viewport.zoom}
+        />
+      );
+    }
+
+    return labels;
+  };
+
   // Snap position to grid
   const snapToGrid = (pos: Point): Point => {
     if (!grid.snapEnabled) return pos;
     
-    const cellSize = grid.cellSize * viewport.zoom;
+    const cellSize = grid.cellSize; // Don't multiply by zoom for snapping
     return {
       x: Math.round(pos.x / cellSize) * cellSize,
       y: Math.round(pos.y / cellSize) * cellSize
@@ -132,7 +176,7 @@ export const GridCanvas: React.FC = () => {
 
   // Convert pixel coordinates to grid coordinates
   const pixelToGrid = (pos: Point): Point => {
-    const cellSize = grid.cellSize * viewport.zoom;
+    const cellSize = grid.cellSize; // Don't multiply by zoom for grid conversion
     return {
       x: Math.floor(pos.x / cellSize),
       y: Math.floor(pos.y / cellSize)
@@ -141,7 +185,7 @@ export const GridCanvas: React.FC = () => {
 
   // Convert grid coordinates to pixel coordinates
   const gridToPixel = (pos: Point): Point => {
-    const cellSize = grid.cellSize * viewport.zoom;
+    const cellSize = grid.cellSize; // Don't multiply by zoom for grid conversion
     return {
       x: pos.x * cellSize,
       y: pos.y * cellSize
@@ -154,6 +198,8 @@ export const GridCanvas: React.FC = () => {
     const snappedPos = snapToGrid(pos);
     const gridPos = pixelToGrid(snappedPos);
     
+    // Update position and snap back to grid visually
+    e.target.position(gridToPixel(gridPos));
     moveModule(moduleId, gridPos);
   };
 
@@ -311,8 +357,13 @@ export const GridCanvas: React.FC = () => {
         }}
       >
         <Layer>
-          {/* Grid lines */}
-          {grid.gridVisible && generateGridLines()}
+          {/* Grid lines and labels */}
+          {grid.gridVisible && (
+            <>
+              {generateGridLines()}
+              {generateGridLabels()}
+            </>
+          )}
           
           {/* Placed modules */}
           {renderPlacedModules()}

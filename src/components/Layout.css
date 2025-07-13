@@ -7,11 +7,12 @@
 
 .layout-toolbar {
   height: 50px;
-  background-color: #2c3e50;
-  border-bottom: 1px solid #34495e;
+  background: linear-gradient(135deg, var(--openuc2-blue), var(--openuc2-dark-blue));
+  border-bottom: 1px solid var(--openuc2-dark-blue);
   display: flex;
   align-items: center;
   padding: 0 16px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .layout-main {
@@ -22,8 +23,8 @@
 
 .layout-sidebar-left {
   width: 300px;
-  background-color: #ecf0f1;
-  border-right: 1px solid #bdc3c7;
+  background-color: var(--background-color);
+  border-right: 1px solid var(--border-color);
   overflow-y: auto;
 }
 
@@ -36,11 +37,22 @@
 
 .layout-sidebar-right {
   width: 280px;
-  background-color: #ecf0f1;
-  border-left: 1px solid #bdc3c7;
+  background-color: var(--background-color);
+  border-left: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
   overflow-y: auto;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1024px) {
+  .layout-sidebar-left {
+    width: 250px;
+  }
+  
+  .layout-sidebar-right {
+    width: 250px;
+  }
 }
 
 /* Responsive adjustments */

@@ -17,21 +17,67 @@ export const Toolbar: React.FC = () => {
 
   const handleExport = () => {
     const data = exportData();
-    const blob = new Blob([data], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'optikit-layout.json';
-    a.click();
-    URL.revokeObjectURL(url);
+    
+    // Use File System Access API if available, otherwise fallback to prompt
+    if ('showSaveFilePicker' in window) {
+      // Modern browsers with File System Access API
+      const saveFile = async () => {
+        try {
+          const fileHandle = await (window as any).showSaveFilePicker({
+            types: [{
+              description: 'JSON files',
+              accept: {
+                'application/json': ['.json'],
+              },
+            }],
+            suggestedName: 'optikit-layout.json',
+          });
+          
+          const writable = await fileHandle.createWritable();
+          await writable.write(data);
+          await writable.close();
+        } catch (error) {
+          // User cancelled or error occurred
+          console.log('Save cancelled or failed:', error);
+        }
+      };
+      saveFile();
+    } else {
+      // Fallback for older browsers - prompt for filename
+      const defaultName = 'optikit-layout.json';
+      const filename = prompt('Enter filename:', defaultName) || defaultName;
+      
+      const blob = new Blob([data], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename.endsWith('.json') ? filename : filename + '.json';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
   };
 
   const handleShare = () => {
     const data = exportData();
     const subject = 'OpenUC2 OptiKit Layout';
-    const body = `Please find attached the OpenUC2 OptiKit layout configuration:\n\n${data}`;
+    const body = `I've created an optical system layout using OpenUC2 OptiKit!
+
+Please find the layout configuration below. You can import this into OpenUC2 OptiKit by copying the JSON data and using the Import function.
+
+Layout Configuration:
+${data}
+
+Best regards`;
+    
     const mailtoUrl = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    window.open(mailtoUrl, '_blank');
+    
+    // Try to open in default mail client
+    const link = document.createElement('a');
+    link.href = mailtoUrl;
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const handleImport = () => {
@@ -54,6 +100,13 @@ export const Toolbar: React.FC = () => {
 
   return (
     <div className="toolbar">
+      <div className="toolbar-logo">
+        <div className="toolbar-logo-icon">UC2</div>
+        <span className="toolbar-logo-text">openUC2</span>
+      </div>
+
+      <div className="toolbar-separator" />
+
       <div className="toolbar-group">
         <button 
           className="toolbar-button"
@@ -136,9 +189,9 @@ export const Toolbar: React.FC = () => {
         <button 
           className="toolbar-button"
           onClick={handleExport}
-          title="Export Layout"
+          title="Save Layout As..."
         >
-          ↓
+          💾
         </button>
         <button 
           className="toolbar-button"
@@ -152,12 +205,12 @@ export const Toolbar: React.FC = () => {
           onClick={handleImport}
           title="Import Layout"
         >
-          ↑
+          📁
         </button>
       </div>
 
       <div className="toolbar-title">
-        <h1>OpenUC2 OptiKit - 2D Grid Builder</h1>
+        <h1>OptiKit - 2D Grid Builder</h1>
       </div>
     </div>
   );
