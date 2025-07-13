@@ -13,9 +13,12 @@ export interface Size {
 export interface ModuleDefinition {
   id: string;
   name: string;
+  group: string;
   color: string;
   footprint: Size; // in grid cells
   thumbnail?: string;
+  cadUrl?: string;
+  description?: string;
   defaultParams?: Record<string, unknown>;
 }
 
