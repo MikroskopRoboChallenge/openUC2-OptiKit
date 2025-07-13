@@ -13,6 +13,7 @@ export const GridCanvas: React.FC = () => {
   const stageRef = useRef<Konva.Stage>(null);
   const [stageSize, setStageSize] = useState({ width: CANVAS_SIZE, height: CANVAS_SIZE });
   const [moduleImages, setModuleImages] = useState<Record<string, HTMLImageElement>>({});
+  const [isDraggingModule, setIsDraggingModule] = useState(false);
   
   const {
     grid,
@@ -192,6 +193,11 @@ export const GridCanvas: React.FC = () => {
     };
   };
 
+  // Handle module drag start
+  const handleModuleDragStart = () => {
+    setIsDraggingModule(true);
+  };
+
   // Handle module drag end
   const handleModuleDragEnd = (moduleId: string, e: KonvaEventObject<DragEvent>) => {
     const pos = e.target.position();
@@ -201,6 +207,7 @@ export const GridCanvas: React.FC = () => {
     // Update position and snap back to grid visually
     e.target.position(gridToPixel(gridPos));
     moveModule(moduleId, gridPos);
+    setIsDraggingModule(false);
   };
 
   // Handle canvas click
@@ -264,6 +271,7 @@ export const GridCanvas: React.FC = () => {
             x={pos.x}
             y={pos.y}
             draggable
+            onDragStart={handleModuleDragStart}
             onDragEnd={(e) => handleModuleDragEnd(module.id, e)}
             onClick={() => selectItem(module.id, 'module')}
           >
@@ -349,7 +357,7 @@ export const GridCanvas: React.FC = () => {
             });
           }
         }}
-        draggable
+        draggable={!isDraggingModule}
         onDragEnd={(e) => {
           setViewport({
             pan: { x: e.target.x(), y: e.target.y() }
