@@ -19,11 +19,11 @@ export function parseCSV(csvText: string): ModuleCSVRow[] {
   
   return lines.slice(1).map(line => {
     const values = line.split(',');
-    const row: any = {};
+    const row: Record<string, string> = {};
     headers.forEach((header, index) => {
       row[header.trim()] = values[index]?.trim() || '';
     });
-    return row as ModuleCSVRow;
+    return row as unknown as ModuleCSVRow;
   });
 }
 
@@ -31,7 +31,7 @@ export function csvRowToModuleDefinition(row: ModuleCSVRow): ModuleDefinition {
   let defaultParams = {};
   try {
     defaultParams = JSON.parse(row.defaultParams);
-  } catch (e) {
+  } catch {
     console.warn(`Invalid defaultParams for module ${row.id}:`, row.defaultParams);
   }
 
