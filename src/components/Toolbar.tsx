@@ -24,7 +24,7 @@ export const Toolbar: React.FC = () => {
       // Modern browsers with File System Access API
       const saveFile = async () => {
         try {
-          const fileHandle = await (window as any).showSaveFilePicker({
+          const fileHandle = await (window as unknown as { showSaveFilePicker: (options: unknown) => Promise<FileSystemFileHandle> }).showSaveFilePicker({
             types: [{
               description: 'JSON files',
               accept: {
