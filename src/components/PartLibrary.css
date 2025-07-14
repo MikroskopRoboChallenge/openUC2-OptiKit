@@ -171,3 +171,103 @@
 .part-library-content::-webkit-scrollbar-thumb:hover {
   background: #95a5a6;
 }
+
+/* Mobile responsive styles */
+@media (max-width: 768px) {
+  .part-library {
+    padding: 12px;
+  }
+  
+  .part-library-header h3 {
+    font-size: 1.1em;
+    margin-bottom: 12px;
+  }
+  
+  .module-grid {
+    gap: 6px;
+  }
+  
+  .module-tile {
+    padding: 8px;
+    border-radius: 4px;
+  }
+  
+  .module-preview {
+    width: 40px;
+    height: 40px;
+    margin-right: 10px;
+  }
+  
+  .module-name {
+    font-size: 13px;
+  }
+  
+  .module-description {
+    font-size: 11px;
+  }
+  
+  .drag-hint {
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 480px) {
+  .part-library {
+    padding: 8px;
+  }
+  
+  .part-library-header h3 {
+    font-size: 1em;
+    margin-bottom: 8px;
+  }
+  
+  .module-grid {
+    gap: 4px;
+  }
+  
+  .module-tile {
+    padding: 6px;
+    border-radius: 3px;
+  }
+  
+  .module-preview {
+    width: 32px;
+    height: 32px;
+    margin-right: 8px;
+  }
+  
+  .module-name {
+    font-size: 12px;
+  }
+  
+  .module-description {
+    font-size: 10px;
+  }
+  
+  .search-input,
+  .group-select {
+    padding: 6px 8px;
+    font-size: 13px;
+  }
+}
+
+/* Touch-friendly module tiles */
+.module-tile {
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+.module-tile:hover {
+  transform: translateY(-1px);
+}
+
+/* Touch feedback */
+.module-tile:active {
+  transform: scale(0.95);
+  transition: transform 0.1s ease;
+}

@@ -25,6 +25,76 @@ export const PartLibrary: React.FC = () => {
     e.dataTransfer.effectAllowed = 'copy';
   };
 
+  // Touch support for mobile devices
+  const handleTouchStart = (e: React.TouchEvent, moduleId: string) => {
+    e.preventDefault();
+    const target = e.currentTarget as HTMLElement;
+    
+    // Store the module ID for touch handling
+    target.dataset.moduleId = moduleId;
+    
+    // Visual feedback
+    target.style.opacity = '0.7';
+    target.style.transform = 'scale(0.95)';
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    e.preventDefault();
+    const touch = e.touches[0];
+    const target = e.currentTarget as HTMLElement;
+    
+    // Check if we're over the canvas
+    const canvasElement = document.querySelector('.layout-canvas');
+    if (canvasElement) {
+      const rect = canvasElement.getBoundingClientRect();
+      const isOverCanvas = touch.clientX >= rect.left && 
+                          touch.clientX <= rect.right && 
+                          touch.clientY >= rect.top && 
+                          touch.clientY <= rect.bottom;
+      
+      if (isOverCanvas) {
+        target.style.opacity = '0.5';
+      } else {
+        target.style.opacity = '0.7';
+      }
+    }
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    e.preventDefault();
+    const touch = e.changedTouches[0];
+    const target = e.currentTarget as HTMLElement;
+    const moduleId = target.dataset.moduleId;
+    
+    // Reset visual feedback
+    target.style.opacity = '1';
+    target.style.transform = 'scale(1)';
+    
+    if (!moduleId) return;
+    
+    // Check if we're over the canvas
+    const canvasElement = document.querySelector('.layout-canvas');
+    if (canvasElement) {
+      const rect = canvasElement.getBoundingClientRect();
+      const isOverCanvas = touch.clientX >= rect.left && 
+                          touch.clientX <= rect.right && 
+                          touch.clientY >= rect.top && 
+                          touch.clientY <= rect.bottom;
+      
+      if (isOverCanvas) {
+        // Simulate a drop event
+        const dropEvent = new CustomEvent('mobile-drop', {
+          detail: {
+            moduleId,
+            x: touch.clientX,
+            y: touch.clientY
+          }
+        });
+        canvasElement.dispatchEvent(dropEvent);
+      }
+    }
+  };
+
   const renderModuleTile = (module: ModuleDefinition) => {
     return (
       <div
@@ -32,6 +102,9 @@ export const PartLibrary: React.FC = () => {
         className="module-tile"
         draggable
         onDragStart={(e) => handleDragStart(e, module.id)}
+        onTouchStart={(e) => handleTouchStart(e, module.id)}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
         title={module.description || module.name}
       >
         <div className="module-preview">

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useAppStore } from '../stores/appStore';
 import './PropertyPanel.css';
 
@@ -11,8 +11,12 @@ export const PropertyPanel: React.FC = () => {
     modules,
     removeModule,
     removeAnnotation,
-    rotateModule
+    rotateModule,
+    updateModuleCustomText
   } = useAppStore();
+
+  const [isEditingText, setIsEditingText] = useState(false);
+  const [editText, setEditText] = useState('');
 
   if (!selectedItemId || !selectedItemType) {
     return (
@@ -38,6 +42,23 @@ export const PropertyPanel: React.FC = () => {
       const newRotation = (module.rotation + 90) % 360;
       rotateModule(module.id, newRotation);
     };
+
+    const handleEditText = () => {
+      setEditText(module.customText || moduleDefinition.defaultParams?.customText as string || '');
+      setIsEditingText(true);
+    };
+
+    const handleSaveText = () => {
+      updateModuleCustomText(module.id, editText);
+      setIsEditingText(false);
+    };
+
+    const handleCancelEdit = () => {
+      setIsEditingText(false);
+      setEditText('');
+    };
+
+    const isWildCard = moduleDefinition.defaultParams?.isWildCard === true;
 
     return (
       <div className="property-content">
@@ -68,6 +89,38 @@ export const PropertyPanel: React.FC = () => {
             </span>
           </div>
         </div>
+
+        {isWildCard && (
+          <div className="property-group">
+            <h5>Wild Card Text</h5>
+            {isEditingText ? (
+              <div className="text-editor">
+                <textarea
+                  value={editText}
+                  onChange={(e) => setEditText(e.target.value)}
+                  className="text-input"
+                  rows={3}
+                  placeholder="Enter custom text..."
+                />
+                <div className="text-actions">
+                  <button className="property-button" onClick={handleSaveText}>
+                    Save
+                  </button>
+                  <button className="property-button" onClick={handleCancelEdit}>
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="text-display">
+                <p>{module.customText || 'No custom text set'}</p>
+                <button className="property-button" onClick={handleEditText}>
+                  {module.customText ? 'Edit Text' : 'Add Text'}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="property-group">
           <h5>Actions</h5>

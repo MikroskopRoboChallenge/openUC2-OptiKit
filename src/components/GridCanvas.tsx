@@ -58,15 +58,49 @@ export const GridCanvas: React.FC = () => {
       }
     };
 
+    const handleMobileDrop = (e: CustomEvent) => {
+      const { moduleId, x, y } = e.detail;
+      const stage = stageRef.current;
+      if (!stage) return;
+
+      // Get the stage position
+      const stageBox = stage.container().getBoundingClientRect();
+      const pointerPos = {
+        x: x - stageBox.left,
+        y: y - stageBox.top
+      };
+
+      // Transform the pointer position based on current viewport
+      const transformedPos = {
+        x: (pointerPos.x - viewport.pan.x) / viewport.zoom,
+        y: (pointerPos.y - viewport.pan.y) / viewport.zoom
+      };
+
+      const snappedPos = snapToGrid(transformedPos);
+      const gridPos = pixelToGrid(snappedPos);
+      
+      placeModule(moduleId, gridPos, currentLayerIndex);
+    };
+
     window.addEventListener('resize', updateSize);
     window.addEventListener('download-screenshot', handleScreenshotDownload);
+    
+    // Add mobile drop event listener
+    const canvasElement = stageRef.current?.container();
+    if (canvasElement) {
+      canvasElement.addEventListener('mobile-drop', handleMobileDrop as EventListener);
+    }
+    
     updateSize();
     
     return () => {
       window.removeEventListener('resize', updateSize);
       window.removeEventListener('download-screenshot', handleScreenshotDownload);
+      if (canvasElement) {
+        canvasElement.removeEventListener('mobile-drop', handleMobileDrop as EventListener);
+      }
     };
-  }, []);
+  }, [viewport.pan.x, viewport.pan.y, viewport.zoom, currentLayerIndex, placeModule]);
 
   // Load SVG images for modules
   useEffect(() => {
@@ -335,7 +369,11 @@ export const GridCanvas: React.FC = () => {
                 />
               )}
               <Text
-                text={moduleDefinition.name}
+                text={
+                  moduleDefinition.defaultParams?.isWildCard === true && module.customText
+                    ? module.customText
+                    : moduleDefinition.name
+                }
                 x={4}
                 y={moduleDefinition.footprint.height * cellSize - 16}
                 fontSize={10 / viewport.zoom}

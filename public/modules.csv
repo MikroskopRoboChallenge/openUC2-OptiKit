@@ -14,3 +14,6 @@ stage-z,Z Stage,stages,#495057,2,2,/icons/uc2_zstage_1x2.svg,/cad/stage-z.stl,Z-
 laser-405nm,Laser 405nm,fluorescence,#6610f2,1,1,/icons/uc2_laser_1x1.svg,/cad/laser-405nm.stl,405nm laser diode module,"{""power"": 5}"
 laser-532nm,Laser 532nm,fluorescence,#198754,1,1,/icons/uc2_laser_1x1.svg,/cad/laser-532nm.stl,532nm laser diode module,"{""power"": 10}"
 photodiode,Photodiode,detector,#198754,1,1,/icons/uc2_photodiode_1x1.svg,/cad/laser-532nm.stl,photodiode,"{""power"": 10}"
+wildcard-1x1,Wild Card 1x1,wildcard,#6c757d,1,1,/icons/uc2_wildcard_1x1.svg,/cad/wildcard-1x1.stl,Customizable 1x1 module,"{""customText"": ""Custom Module"", ""isWildCard"": true}"
+wildcard-2x2,Wild Card 2x2,wildcard,#6c757d,2,2,/icons/uc2_wildcard_2x2.svg,/cad/wildcard-2x2.stl,Customizable 2x2 module,"{""customText"": ""Custom Module"", ""isWildCard"": true}"
+wildcard-3x3,Wild Card 3x3,wildcard,#6c757d,3,3,/icons/uc2_wildcard_3x3.svg,/cad/wildcard-3x3.stl,Customizable 3x3 module,"{""customText"": ""Custom Module"", ""isWildCard"": true}"

@@ -120,3 +120,59 @@
 .property-panel::-webkit-scrollbar-thumb:hover {
   background: #95a5a6;
 }
+
+/* Wild card text editing styles */
+.text-editor {
+  margin-top: 8px;
+}
+
+.text-input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #bdc3c7;
+  border-radius: 4px;
+  font-size: 14px;
+  font-family: inherit;
+  resize: vertical;
+  min-height: 60px;
+  box-sizing: border-box;
+}
+
+.text-input:focus {
+  outline: none;
+  border-color: #3498db;
+  box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+}
+
+.text-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.text-actions .property-button {
+  flex: 1;
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+.text-display {
+  margin-top: 8px;
+}
+
+.text-display p {
+  margin: 0 0 8px 0;
+  padding: 8px;
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 4px;
+  font-size: 14px;
+  color: #495057;
+  min-height: 20px;
+}
+
+.text-display .property-button {
+  width: 100%;
+  padding: 6px 12px;
+  font-size: 12px;
+}

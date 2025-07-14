@@ -55,7 +55,8 @@ export function csvRowToModuleDefinition(row: ModuleCSVRow): ModuleDefinition {
     thumbnail: addConfiguratorPrefix(row.thumbnail),
     cadUrl: addConfiguratorPrefix(row.cadUrl),
     description: row.description,
-    defaultParams
+    defaultParams,
+    isWildCard: (defaultParams as { isWildCard?: boolean }).isWildCard || false
   };
 }
 

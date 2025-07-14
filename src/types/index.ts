@@ -20,6 +20,7 @@ export interface ModuleDefinition {
   cadUrl?: string;
   description?: string;
   defaultParams?: Record<string, unknown>;
+  isWildCard?: boolean;
 }
 
 export interface PlacedModule {
@@ -29,6 +30,7 @@ export interface PlacedModule {
   rotation: number; // in degrees (0, 90, 180, 270)
   layer: number;
   params?: Record<string, unknown>;
+  customText?: string; // For wild card modules
 }
 
 export interface Annotation {
