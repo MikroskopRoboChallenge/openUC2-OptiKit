@@ -1,5 +1,6 @@
 import React from 'react';
 import { useAppStore } from '../stores/appStore';
+import type { ModuleDefinition } from '../types';
 import './BOMPanel.css';
 
 export const BOMPanel: React.FC = () => {
@@ -7,14 +8,14 @@ export const BOMPanel: React.FC = () => {
 
   // Calculate BOM from placed modules
   const bomItems = React.useMemo(() => {
-    const bomMap = new Map<string, { module: any; count: number; totalPrice: number }>();
+    const bomMap = new Map<string, { module: ModuleDefinition; count: number; totalPrice: number }>();
     
     placedModules.forEach(placedModule => {
       const moduleDefinition = modules.find(m => m.id === placedModule.moduleId);
       if (moduleDefinition) {
         const key = moduleDefinition.id;
         const existing = bomMap.get(key);
-        const price = (moduleDefinition.defaultParams as any)?.price || 0;
+        const price = (moduleDefinition.defaultParams as Record<string, unknown>)?.price as number || 0;
         
         if (existing) {
           existing.count += 1;
@@ -57,7 +58,7 @@ export const BOMPanel: React.FC = () => {
             </div>
             
             {bomItems.map((item, index) => {
-              const unitPrice = (item.module.defaultParams as any)?.price || 0;
+              const unitPrice = (item.module.defaultParams as Record<string, unknown>)?.price as number || 0;
               return (
                 <div key={index} className="bom-item">
                   <div className="module-info">

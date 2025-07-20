@@ -8,7 +8,8 @@ import type {
   Annotation, 
   Layer, 
   Point, 
-  Command 
+  Command,
+  UC2Component
 } from '../types';
 
 const GRID_CELL_SIZE = 50; // 50mm in pixels (assuming 1:1 scale)
@@ -56,6 +57,8 @@ interface AppStore extends AppState {
   exportData: () => string;
   exportDataWithScreenshot: (screenshotDataUrl?: string) => Promise<string>;
   exportToPyInventor: () => string;
+  shareToGitHubDiscussions: () => void;
+  downloadSTLBundle: (password: string) => Promise<void>;
   importData: (data: string) => void;
   importFromUrl: (url: string) => Promise<boolean>;
   undo: () => void;
@@ -300,27 +303,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
   exportData: () => {
     const state = get();
-    return JSON.stringify({
-      placedModules: state.placedModules,
-      annotations: state.annotations,
-      layers: state.layers
-    });
-  },
-
-  exportDataWithScreenshot: async (screenshotDataUrl?: string) => {
-    const state = get();
-    return JSON.stringify({
-      placedModules: state.placedModules,
-      annotations: state.annotations,
-      layers: state.layers,
-      screenshot: screenshotDataUrl || null,
-      timestamp: new Date().toISOString()
-    });
-  },
-
-  exportToPyInventor: () => {
-    const state = get();
-    const uc2_components: any[] = [];
+    const uc2_components: UC2Component[] = [];
     
     state.placedModules.forEach((module, index) => {
       const moduleDefinition = state.modules.find(m => m.id === module.moduleId);
@@ -340,22 +323,102 @@ export const useAppStore = create<AppStore>((set, get) => ({
           rotation: [0, rotationY, 0],
           moduleId: module.moduleId,
           originalName: moduleDefinition.name,
-          description: moduleDefinition.description
+          description: moduleDefinition.description,
+          params: module.params || {},
+          customText: module.customText
         });
       }
     });
     
-    return JSON.stringify({ uc2_components }, null, 2);
+    return JSON.stringify({
+      uc2_components,
+      annotations: state.annotations,
+      layers: state.layers,
+      metadata: {
+        version: "1.0",
+        created: new Date().toISOString(),
+        software: "OpenUC2 OptiKit"
+      }
+    }, null, 2);
+  },
+
+  exportDataWithScreenshot: async (screenshotDataUrl?: string) => {
+    const state = get();
+    const uc2_components: UC2Component[] = [];
+    
+    state.placedModules.forEach((module, index) => {
+      const moduleDefinition = state.modules.find(m => m.id === module.moduleId);
+      if (moduleDefinition) {
+        // Generate a unique name with running number
+        const baseName = moduleDefinition.name.replace(/\s+/g, '_');
+        const runningNumber = index.toString().padStart(2, '0');
+        const name = `${baseName}_${runningNumber}`;
+        
+        // Convert rotation to PyInventor format (Y-axis rotation)
+        const rotationY = module.rotation;
+        
+        uc2_components.push({
+          name: name,
+          file: moduleDefinition.autodeskInventor || `C:\\UC2_Components\\${moduleDefinition.name.replace(/\s+/g, '_')}.iam`,
+          grid_pos: [module.position.x, module.position.y, module.layer],
+          rotation: [0, rotationY, 0],
+          moduleId: module.moduleId,
+          originalName: moduleDefinition.name,
+          description: moduleDefinition.description,
+          params: module.params || {},
+          customText: module.customText
+        });
+      }
+    });
+    
+    return JSON.stringify({
+      uc2_components,
+      annotations: state.annotations,
+      layers: state.layers,
+      screenshot: screenshotDataUrl || null,
+      metadata: {
+        version: "1.0",
+        created: new Date().toISOString(),
+        software: "OpenUC2 OptiKit"
+      }
+    }, null, 2);
+  },
+
+  exportToPyInventor: () => {
+    // This now just calls exportData since we have a unified format
+    return get().exportData();
   },
 
   importData: (data: string) => {
     try {
       const parsed = JSON.parse(data);
-      set({
-        placedModules: parsed.placedModules || [],
-        annotations: parsed.annotations || [],
-        layers: parsed.layers || [{ id: 'layer-0', name: 'Layer 0', index: 0, visible: true }]
-      });
+      
+      // Check if it's the new unified format with uc2_components
+      if (parsed.uc2_components) {
+        // Convert from new format to internal format
+        const placedModules: PlacedModule[] = parsed.uc2_components.map((component: UC2Component) => ({
+          id: uuidv4(),
+          moduleId: component.moduleId || component.name.toLowerCase().replace(/_\d+$/, '').replace(/_/g, '-'),
+          position: { x: component.grid_pos[0], y: component.grid_pos[1] },
+          rotation: component.rotation[1] || 0, // Use Y-axis rotation
+          layer: component.grid_pos[2] || 0,
+          params: component.params || {},
+          customText: component.customText
+        }));
+        
+        set({
+          placedModules,
+          annotations: parsed.annotations || [],
+          layers: parsed.layers || [{ id: 'layer-0', name: 'Layer 0', index: 0, visible: true }]
+        });
+      } else {
+        // Legacy format support
+        set({
+          placedModules: parsed.placedModules || [],
+          annotations: parsed.annotations || [],
+          layers: parsed.layers || [{ id: 'layer-0', name: 'Layer 0', index: 0, visible: true }]
+        });
+      }
     } catch (error) {
       console.error('Failed to import data:', error);
     }
@@ -370,11 +433,32 @@ export const useAppStore = create<AppStore>((set, get) => ({
       const data = await response.text();
       const parsed = JSON.parse(data);
       
-      set({
-        placedModules: parsed.placedModules || [],
-        annotations: parsed.annotations || [],
-        layers: parsed.layers || [{ id: 'layer-0', name: 'Layer 0', index: 0, visible: true }]
-      });
+      // Check if it's the new unified format with uc2_components
+      if (parsed.uc2_components) {
+        // Convert from new format to internal format
+        const placedModules: PlacedModule[] = parsed.uc2_components.map((component: UC2Component) => ({
+          id: uuidv4(),
+          moduleId: component.moduleId || component.name.toLowerCase().replace(/_\d+$/, '').replace(/_/g, '-'),
+          position: { x: component.grid_pos[0], y: component.grid_pos[1] },
+          rotation: component.rotation[1] || 0, // Use Y-axis rotation
+          layer: component.grid_pos[2] || 0,
+          params: component.params || {},
+          customText: component.customText
+        }));
+        
+        set({
+          placedModules,
+          annotations: parsed.annotations || [],
+          layers: parsed.layers || [{ id: 'layer-0', name: 'Layer 0', index: 0, visible: true }]
+        });
+      } else {
+        // Legacy format support
+        set({
+          placedModules: parsed.placedModules || [],
+          annotations: parsed.annotations || [],
+          layers: parsed.layers || [{ id: 'layer-0', name: 'Layer 0', index: 0, visible: true }]
+        });
+      }
       
       return true;
     } catch (error) {
@@ -447,5 +531,68 @@ export const useAppStore = create<AppStore>((set, get) => ({
     // We'll emit a custom event for the canvas to capture
     const event = new CustomEvent('download-screenshot');
     window.dispatchEvent(event);
+  },
+
+  shareToGitHubDiscussions: () => {
+    const state = get();
+    const setup = state.exportData();
+    const body = encodeURIComponent("```json\n" + setup + "\n```");
+    const url = 
+      "https://github.com/youseetoo/youseetoo.github.io/discussions/new" +
+      "?category=setups" +
+      "&title=" + encodeURIComponent("Optik‑setup") +
+      "&body=" + body;
+    window.open(url, "_blank");
+  },
+
+  downloadSTLBundle: async (password: string) => {
+    if (password !== "youseetoo") {
+      alert("Invalid password");
+      return;
+    }
+
+    try {
+      const state = get();
+      const { default: JSZip } = await import('jszip');
+      const zip = new JSZip();
+      
+      // Get unique CAD files from placed modules
+      const cadFiles = new Set<string>();
+      state.placedModules.forEach(module => {
+        const moduleDefinition = state.modules.find(m => m.id === module.moduleId);
+        if (moduleDefinition?.cadUrl) {
+          cadFiles.add(moduleDefinition.cadUrl);
+        }
+      });
+
+      // Fetch each STL file and add to zip
+      const promises = Array.from(cadFiles).map(async (cadUrl) => {
+        try {
+          const response = await fetch(cadUrl);
+          if (response.ok) {
+            const blob = await response.blob();
+            const filename = cadUrl.split('/').pop() || 'unknown.stl';
+            zip.file(filename, blob);
+          }
+        } catch (error) {
+          console.warn(`Failed to fetch ${cadUrl}:`, error);
+        }
+      });
+
+      await Promise.all(promises);
+
+      // Generate zip and download
+      const content = await zip.generateAsync({ type: "blob" });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(content);
+      link.download = 'optikit-stl-bundle.zip';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(link.href);
+    } catch (error) {
+      console.error('Failed to create STL bundle:', error);
+      alert('Failed to create STL bundle');
+    }
   }
 }));

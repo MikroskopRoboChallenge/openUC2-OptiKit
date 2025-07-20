@@ -4,7 +4,14 @@
   "version": "1.0.0",
   "type": "module",
   "description": "2D layered grid builder for OpenUC2 optical cube modules",
-  "keywords": ["optics", "grid", "design", "react", "typescript", "konva"],
+  "keywords": [
+    "optics",
+    "grid",
+    "design",
+    "react",
+    "typescript",
+    "konva"
+  ],
   "homepage": "https://github.com/openUC2/openUC2-OptiKit",
   "repository": {
     "type": "git",
@@ -17,6 +24,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "jszip": "^3.10.1",
     "konva": "^9.3.22",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",

@@ -12,6 +12,7 @@ export interface ModuleCSVRow {
   description: string;
   defaultParams: string;
   autodeskInventor?: string;
+  price?: string;
 }
 
 export function parseCSV(csvText: string): ModuleCSVRow[] {
@@ -44,6 +45,14 @@ export function csvRowToModuleDefinition(row: ModuleCSVRow): ModuleDefinition {
     console.warn(`Invalid defaultParams for module ${row.id}:`, row.defaultParams);
   }
 
+  // Add price to defaultParams if available
+  if (row.price) {
+    const price = parseFloat(row.price);
+    if (!isNaN(price)) {
+      (defaultParams as Record<string, unknown>).price = price;
+    }
+  }
+
   return {
     id: row.id,
     name: row.name,
@@ -62,7 +71,7 @@ export function csvRowToModuleDefinition(row: ModuleCSVRow): ModuleDefinition {
   };
 }
 
-export async function loadModulesFromCSV(csvUrl: string = '/configurator/modules.csv'): Promise<ModuleDefinition[]> {
+export async function loadModulesFromCSV(csvUrl: string = '/configurator/modules_updated.csv'): Promise<ModuleDefinition[]> {
   try {
     const response = await fetch(csvUrl);
     if (!response.ok) {

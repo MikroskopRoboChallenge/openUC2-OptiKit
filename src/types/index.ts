@@ -88,3 +88,15 @@ export interface Command {
   undo: () => void;
   description: string;
 }
+
+export interface UC2Component {
+  name: string;
+  file: string;
+  grid_pos: [number, number, number];
+  rotation: [number, number, number];
+  moduleId: string;
+  originalName: string;
+  description?: string;
+  params?: Record<string, unknown>;
+  customText?: string;
+}

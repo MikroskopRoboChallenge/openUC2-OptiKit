@@ -7,8 +7,9 @@ export const Toolbar: React.FC = () => {
     grid, 
     setGridConfig, 
     exportData, 
-    exportDataWithScreenshot,
     exportToPyInventor,
+    shareToGitHubDiscussions,
+    downloadSTLBundle,
     importData, 
     importFromUrl,
     undo, 
@@ -126,38 +127,7 @@ Best regards`;
   const handleExportSTL = () => {
     const password = prompt('Enter password to export STL files:');
     if (password === 'youseetoo') {
-      const data = exportData();
-      
-      // Create a list of unique STL files from placed modules
-      const stlFiles: string[] = [];
-      const { modules, placedModules } = useAppStore.getState();
-      
-      placedModules.forEach(placedModule => {
-        const moduleDefinition = modules.find(m => m.id === placedModule.moduleId);
-        if (moduleDefinition && moduleDefinition.cadUrl && !stlFiles.includes(moduleDefinition.cadUrl)) {
-          stlFiles.push(moduleDefinition.cadUrl);
-        }
-      });
-      
-      // Create a text file with the list of STL files
-      const stlList = stlFiles.join('\n');
-      const blob = new Blob([
-        `OpenUC2 OptiKit STL Export\n`,
-        `Generated on: ${new Date().toISOString()}\n`,
-        `\nSTL Files in this assembly:\n`,
-        stlList,
-        `\n\nLayout Configuration:\n`,
-        data
-      ], { type: 'text/plain' });
-      
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'optikit-stl-export.txt';
-      a.click();
-      URL.revokeObjectURL(url);
-      
-      alert(`STL export complete! Found ${stlFiles.length} STL files in the assembly.`);
+      downloadSTLBundle(password);
     } else if (password !== null) {
       alert('Incorrect password. Access denied.');
     }
@@ -392,6 +362,13 @@ openUC2 team via GitHub repository
           title="Export STL Files"
         >
           📦
+        </button>
+        <button 
+          className="toolbar-button"
+          onClick={shareToGitHubDiscussions}
+          title="Share to GitHub Discussions"
+        >
+          🌐
         </button>
       </div>
 
