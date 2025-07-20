@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Line, Arrow, Text, Group } from 'react-konva';
+import { Line, Arrow, Text, Group, Rect } from 'react-konva';
 import { useAppStore } from '../stores/appStore';
 import type { KonvaEventObject } from 'konva/lib/Node';
 import type { Point, Annotation } from '../types';
@@ -113,11 +113,7 @@ export const AnnotationCanvas: React.FC<AnnotationCanvasProps> = ({
   };
 
   const renderAnnotations = () => {
-    // Debug: log all annotations and currentLayerIndex
-    console.log('All annotations:', annotations);
-    console.log('Current layer index:', currentLayerIndex);
     const layerAnnotations = annotations.filter(ann => ann.layer === currentLayerIndex);
-    console.log('Annotations in current layer:', layerAnnotations);
     
     return layerAnnotations.map(annotation => {
       const isSelected = selectedItemId === annotation.id;
@@ -220,10 +216,19 @@ export const AnnotationCanvas: React.FC<AnnotationCanvasProps> = ({
 
   return (
     <Group
-      onClick={handleCanvasClick}
-      onMouseMove={handleMouseMove}
       listening={true}
     >
+      {/* Invisible background to capture mouse events */}
+      <Rect
+        x={-5000}
+        y={-5000}
+        width={10000}
+        height={10000}
+        fill="transparent"
+        onClick={handleCanvasClick}
+        onMouseMove={handleMouseMove}
+        listening={true}
+      />
       {renderAnnotations()}
       {renderCurrentDrawing()}
     </Group>
