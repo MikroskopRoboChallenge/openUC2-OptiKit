@@ -222,19 +222,21 @@ export const AnnotationCanvas: React.FC<AnnotationCanvasProps> = ({
 
   return (
     <Group
-      listening={true}
+      listening={annotationMode !== 'none'}
     >
-      {/* Invisible background to capture mouse events */}
-      <Rect
-        x={-5000}
-        y={-5000}
-        width={10000}
-        height={10000}
-        fill="transparent"
-        onClick={handleCanvasClick}
-        onMouseMove={handleMouseMove}
-        listening={true}
-      />
+      {/* Invisible background to capture mouse events - only when in annotation mode */}
+      {annotationMode !== 'none' && (
+        <Rect
+          x={-5000}
+          y={-5000}
+          width={10000}
+          height={10000}
+          fill="transparent"
+          onClick={handleCanvasClick}
+          onMouseMove={handleMouseMove}
+          listening={true}
+        />
+      )}
       {renderAnnotations()}
       {renderCurrentDrawing()}
     </Group>

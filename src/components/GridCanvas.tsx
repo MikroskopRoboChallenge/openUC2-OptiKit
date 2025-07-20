@@ -478,7 +478,7 @@ export const GridCanvas: React.FC = () => {
           {renderPlacedModules()}
         </Layer>
         {/* Annotations always on top */}
-        <Layer listening={true}>
+        <Layer listening={annotationMode !== 'none'}>
           <AnnotationCanvas 
             currentLayerIndex={currentLayerIndex}
             viewport={viewport}
