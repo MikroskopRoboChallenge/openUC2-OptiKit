@@ -52,10 +52,21 @@ export const GridCanvas: React.FC = () => {
           pixelRatio: 2 // Higher quality
         });
         
-        const link = document.createElement('a');
-        link.download = 'optikit-assembly-screenshot.png';
-        link.href = dataURL;
-        link.click();
+        // Check if this is for download or for export
+        const isExportCapture = (window as unknown as { isExportCapture?: boolean }).isExportCapture;
+        
+        if (isExportCapture) {
+          // Emit event with screenshot data for export
+          const event = new CustomEvent('screenshot-captured', { detail: dataURL });
+          window.dispatchEvent(event);
+          (window as unknown as { isExportCapture?: boolean }).isExportCapture = false;
+        } else {
+          // Regular download
+          const link = document.createElement('a');
+          link.download = 'optikit-assembly-screenshot.png';
+          link.href = dataURL;
+          link.click();
+        }
       }
     };
 

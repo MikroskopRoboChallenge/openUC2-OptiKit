@@ -8,8 +8,8 @@ import type {
   Annotation, 
   Layer, 
   Point, 
-  Command,
-  UC2Component
+  UC2Component,
+  StateSnapshot
 } from '../types';
 
 const GRID_CELL_SIZE = 50; // 50mm in pixels (assuming 1:1 scale)
@@ -54,16 +54,15 @@ interface AppStore extends AppState {
   setViewport: (config: Partial<AppState['viewport']>) => void;
   setAnnotationMode: (mode: AppState['annotationMode']) => void;
   checkCollision: (position: Point, footprint: { width: number; height: number }, layer: number, excludeId?: string) => boolean;
-  exportData: () => string;
+  exportData: () => Promise<string>;
   exportDataWithScreenshot: (screenshotDataUrl?: string) => Promise<string>;
-  exportToPyInventor: () => string;
   shareToGitHubDiscussions: () => void;
   downloadSTLBundle: (password: string) => Promise<void>;
   importData: (data: string) => void;
   importFromUrl: (url: string) => Promise<boolean>;
   undo: () => void;
   redo: () => void;
-  executeCommand: (command: Command) => void;
+  pushToHistory: (snapshot: StateSnapshot) => void;
   centerView: () => void;
   saveStateToStorage: () => void;
   loadStateFromStorage: () => void;
@@ -147,6 +146,14 @@ export const useAppStore = create<AppStore>((set, get) => ({
       return; // Cannot place due to collision
     }
 
+    // Save current state to history
+    state.pushToHistory({
+      placedModules: state.placedModules,
+      annotations: state.annotations,
+      layers: state.layers,
+      activeLayerId: state.activeLayerId
+    });
+
     const newModule: PlacedModule = {
       id: uuidv4(),
       moduleId,
@@ -174,6 +181,14 @@ export const useAppStore = create<AppStore>((set, get) => ({
     if (state.checkCollision(position, moduleDefinition.footprint, module.layer, moduleId)) {
       return;
     }
+
+    // Save current state to history
+    state.pushToHistory({
+      placedModules: state.placedModules,
+      annotations: state.annotations,
+      layers: state.layers,
+      activeLayerId: state.activeLayerId
+    });
 
     set(state => ({
       placedModules: state.placedModules.map(m => 
@@ -209,6 +224,16 @@ export const useAppStore = create<AppStore>((set, get) => ({
   },
 
   removeModule: (moduleId: string) => {
+    const state = get();
+    
+    // Save current state to history
+    state.pushToHistory({
+      placedModules: state.placedModules,
+      annotations: state.annotations,
+      layers: state.layers,
+      activeLayerId: state.activeLayerId
+    });
+
     set(state => ({
       placedModules: state.placedModules.filter(m => m.id !== moduleId),
       selectedItemId: state.selectedItemId === moduleId ? null : state.selectedItemId
@@ -224,6 +249,16 @@ export const useAppStore = create<AppStore>((set, get) => ({
   },
 
   addAnnotation: (annotation: Omit<Annotation, 'id'>) => {
+    const state = get();
+    
+    // Save current state to history
+    state.pushToHistory({
+      placedModules: state.placedModules,
+      annotations: state.annotations,
+      layers: state.layers,
+      activeLayerId: state.activeLayerId
+    });
+
     const newAnnotation: Annotation = {
       ...annotation,
       id: uuidv4()
@@ -234,6 +269,16 @@ export const useAppStore = create<AppStore>((set, get) => ({
   },
 
   removeAnnotation: (annotationId: string) => {
+    const state = get();
+    
+    // Save current state to history
+    state.pushToHistory({
+      placedModules: state.placedModules,
+      annotations: state.annotations,
+      layers: state.layers,
+      activeLayerId: state.activeLayerId
+    });
+
     set(state => ({
       annotations: state.annotations.filter(a => a.id !== annotationId),
       selectedItemId: state.selectedItemId === annotationId ? null : state.selectedItemId
@@ -301,45 +346,31 @@ export const useAppStore = create<AppStore>((set, get) => ({
     return false;
   },
 
-  exportData: () => {
-    const state = get();
-    const uc2_components: UC2Component[] = [];
-    
-    state.placedModules.forEach((module, index) => {
-      const moduleDefinition = state.modules.find(m => m.id === module.moduleId);
-      if (moduleDefinition) {
-        // Generate a unique name with running number
-        const baseName = moduleDefinition.name.replace(/\s+/g, '_');
-        const runningNumber = index.toString().padStart(2, '0');
-        const name = `${baseName}_${runningNumber}`;
-        
-        // Convert rotation to PyInventor format (Y-axis rotation)
-        const rotationY = module.rotation;
-        
-        uc2_components.push({
-          name: name,
-          file: moduleDefinition.autodeskInventor || `C:\\UC2_Components\\${moduleDefinition.name.replace(/\s+/g, '_')}.iam`,
-          grid_pos: [module.position.x, module.position.y, module.layer],
-          rotation: [0, rotationY, 0],
-          moduleId: module.moduleId,
-          originalName: moduleDefinition.name,
-          description: moduleDefinition.description,
-          params: module.params || {},
-          customText: module.customText
-        });
-      }
+  exportData: async () => {
+    // Trigger screenshot capture and wait for it
+    const screenshotPromise = new Promise<string>((resolve) => {
+      const handler = (event: CustomEvent) => {
+        window.removeEventListener('screenshot-captured', handler as EventListener);
+        resolve(event.detail);
+      };
+      window.addEventListener('screenshot-captured', handler as EventListener);
+      
+      // Set flag to indicate this is for export
+      (window as unknown as { isExportCapture?: boolean }).isExportCapture = true;
+      
+      // Trigger screenshot
+      const event = new CustomEvent('download-screenshot');
+      window.dispatchEvent(event);
+      
+      // Fallback timeout
+      setTimeout(() => {
+        window.removeEventListener('screenshot-captured', handler as EventListener);
+        resolve('');
+      }, 3000);
     });
-    
-    return JSON.stringify({
-      uc2_components,
-      annotations: state.annotations,
-      layers: state.layers,
-      metadata: {
-        version: "1.0",
-        created: new Date().toISOString(),
-        software: "OpenUC2 OptiKit"
-      }
-    }, null, 2);
+
+    const screenshotDataUrl = await screenshotPromise;
+    return get().exportDataWithScreenshot(screenshotDataUrl);
   },
 
   exportDataWithScreenshot: async (screenshotDataUrl?: string) => {
@@ -385,7 +416,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
   },
 
   exportToPyInventor: () => {
-    // This now just calls exportData since we have a unified format
+    // This is now deprecated - use exportData instead
     return get().exportData();
   },
 
@@ -468,16 +499,46 @@ export const useAppStore = create<AppStore>((set, get) => ({
   },
 
   undo: () => {
-    // TODO: Implement undo functionality
+    const state = get();
+    if (state.historyIndex > 0) {
+      const previousSnapshot = state.history[state.historyIndex - 1];
+      set({
+        ...previousSnapshot,
+        historyIndex: state.historyIndex - 1,
+        history: state.history, // Keep the history
+        selectedItemId: null,
+        selectedItemType: null
+      });
+    }
   },
 
   redo: () => {
-    // TODO: Implement redo functionality
+    const state = get();
+    if (state.historyIndex < state.history.length - 1) {
+      const nextSnapshot = state.history[state.historyIndex + 1];
+      set({
+        ...nextSnapshot,
+        historyIndex: state.historyIndex + 1,
+        history: state.history, // Keep the history
+        selectedItemId: null,
+        selectedItemType: null
+      });
+    }
   },
 
-  executeCommand: (command: Command) => {
-    // TODO: Implement command execution with history
-    command.execute();
+  pushToHistory: (snapshot: StateSnapshot) => {
+    const state = get();
+    const newHistory = state.history.slice(0, state.historyIndex + 1);
+    newHistory.push(snapshot);
+    
+    // Keep only last 50 states to prevent memory issues
+    if (newHistory.length > 50) {
+      newHistory.shift();
+    } else {
+      set({ historyIndex: state.historyIndex + 1 });
+    }
+    
+    set({ history: newHistory });
   },
 
   centerView: () => {
@@ -533,15 +594,20 @@ export const useAppStore = create<AppStore>((set, get) => ({
     window.dispatchEvent(event);
   },
 
-  shareToGitHubDiscussions: () => {
+  shareToGitHubDiscussions: async () => {
     const state = get();
-    const setup = state.exportData();
+    const setup = await state.exportData();
+    
+    // Create GitHub discussion URL with encoded JSON
+    const title = encodeURIComponent("New Optik‑setup from OpenUC2 OptiKit");
     const body = encodeURIComponent("```json\n" + setup + "\n```");
     const url = 
       "https://github.com/youseetoo/youseetoo.github.io/discussions/new" +
       "?category=setups" +
-      "&title=" + encodeURIComponent("Optik‑setup") +
+      "&title=" + title +
       "&body=" + body;
+    
+    // Open in new tab
     window.open(url, "_blank");
   },
 

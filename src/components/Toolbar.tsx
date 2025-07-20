@@ -7,7 +7,6 @@ export const Toolbar: React.FC = () => {
     grid, 
     setGridConfig, 
     exportData, 
-    exportToPyInventor,
     shareToGitHubDiscussions,
     downloadSTLBundle,
     importData, 
@@ -20,8 +19,8 @@ export const Toolbar: React.FC = () => {
     downloadScreenshot
   } = useAppStore();
 
-  const handleExport = () => {
-    const data = exportData();
+  const handleExport = async () => {
+    const data = await exportData();
     
     // Use File System Access API if available, otherwise fallback to prompt
     if ('showSaveFilePicker' in window) {
@@ -62,47 +61,8 @@ export const Toolbar: React.FC = () => {
     }
   };
 
-  const handleExportPyInventor = () => {
-    const data = exportToPyInventor();
-    
-    // Use File System Access API if available, otherwise fallback to prompt
-    if ('showSaveFilePicker' in window) {
-      const saveFile = async () => {
-        try {
-          const fileHandle = await (window as unknown as { showSaveFilePicker: (options: unknown) => Promise<FileSystemFileHandle> }).showSaveFilePicker({
-            types: [{
-              description: 'JSON files',
-              accept: {
-                'application/json': ['.json'],
-              },
-            }],
-            suggestedName: 'pyinventor-layout.json',
-          });
-          
-          const writable = await fileHandle.createWritable();
-          await writable.write(data);
-          await writable.close();
-        } catch (error) {
-          console.log('Save cancelled or failed:', error);
-        }
-      };
-      saveFile();
-    } else {
-      const defaultName = 'pyinventor-layout.json';
-      const filename = prompt('Enter filename for PyInventor export:', defaultName) || defaultName;
-      
-      const blob = new Blob([data], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename.endsWith('.json') ? filename : filename + '.json';
-      a.click();
-      URL.revokeObjectURL(url);
-    }
-  };
-
-  const handleShare = () => {
-    const data = exportData();
+  const handleShare = async () => {
+    const data = await exportData();
     const subject = 'OpenUC2 OptiKit Layout';
     const body = `I've created an optical system layout using OpenUC2 OptiKit!
 
@@ -341,13 +301,6 @@ openUC2 team via GitHub repository
           title="Import from URL"
         >
           🌐
-        </button>
-        <button 
-          className="toolbar-button"
-          onClick={handleExportPyInventor}
-          title="Export for PyInventor"
-        >
-          🔧
         </button>
         <button 
           className="toolbar-button"

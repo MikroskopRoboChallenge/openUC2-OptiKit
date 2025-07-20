@@ -67,6 +67,14 @@ export interface ViewportConfig {
   pan: Point;
 }
 
+// Simplified state snapshot for undo/redo
+export interface StateSnapshot {
+  placedModules: PlacedModule[];
+  annotations: Annotation[];
+  layers: Layer[];
+  activeLayerId: string;
+}
+
 export interface AppState {
   modules: ModuleDefinition[];
   placedModules: PlacedModule[];
@@ -77,7 +85,7 @@ export interface AppState {
   selectedItemType: 'module' | 'annotation' | null;
   grid: GridConfig;
   viewport: ViewportConfig;
-  history: unknown[]; // Command history for undo/redo
+  history: StateSnapshot[]; // Command history for undo/redo
   historyIndex: number;
   annotationMode: 'none' | 'line' | 'arrow' | 'text' | 'optical-axis';
 }
