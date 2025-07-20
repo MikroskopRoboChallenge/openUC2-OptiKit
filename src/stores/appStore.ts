@@ -54,7 +54,10 @@ interface AppStore extends AppState {
   setAnnotationMode: (mode: AppState['annotationMode']) => void;
   checkCollision: (position: Point, footprint: { width: number; height: number }, layer: number, excludeId?: string) => boolean;
   exportData: () => string;
+  exportDataWithScreenshot: (screenshotDataUrl?: string) => Promise<string>;
+  exportToPyInventor: () => string;
   importData: (data: string) => void;
+  importFromUrl: (url: string) => Promise<boolean>;
   undo: () => void;
   redo: () => void;
   executeCommand: (command: Command) => void;
@@ -304,6 +307,47 @@ export const useAppStore = create<AppStore>((set, get) => ({
     });
   },
 
+  exportDataWithScreenshot: async (screenshotDataUrl?: string) => {
+    const state = get();
+    return JSON.stringify({
+      placedModules: state.placedModules,
+      annotations: state.annotations,
+      layers: state.layers,
+      screenshot: screenshotDataUrl || null,
+      timestamp: new Date().toISOString()
+    });
+  },
+
+  exportToPyInventor: () => {
+    const state = get();
+    const uc2_components: any[] = [];
+    
+    state.placedModules.forEach((module, index) => {
+      const moduleDefinition = state.modules.find(m => m.id === module.moduleId);
+      if (moduleDefinition) {
+        // Generate a unique name with running number
+        const baseName = moduleDefinition.name.replace(/\s+/g, '_');
+        const runningNumber = index.toString().padStart(2, '0');
+        const name = `${baseName}_${runningNumber}`;
+        
+        // Convert rotation to PyInventor format (Y-axis rotation)
+        const rotationY = module.rotation;
+        
+        uc2_components.push({
+          name: name,
+          file: moduleDefinition.autodeskInventor || `C:\\UC2_Components\\${moduleDefinition.name.replace(/\s+/g, '_')}.iam`,
+          grid_pos: [module.position.x, module.position.y, module.layer],
+          rotation: [0, rotationY, 0],
+          moduleId: module.moduleId,
+          originalName: moduleDefinition.name,
+          description: moduleDefinition.description
+        });
+      }
+    });
+    
+    return JSON.stringify({ uc2_components }, null, 2);
+  },
+
   importData: (data: string) => {
     try {
       const parsed = JSON.parse(data);
@@ -314,6 +358,28 @@ export const useAppStore = create<AppStore>((set, get) => ({
       });
     } catch (error) {
       console.error('Failed to import data:', error);
+    }
+  },
+
+  importFromUrl: async (url: string) => {
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch JSON from URL: ${response.status}`);
+      }
+      const data = await response.text();
+      const parsed = JSON.parse(data);
+      
+      set({
+        placedModules: parsed.placedModules || [],
+        annotations: parsed.annotations || [],
+        layers: parsed.layers || [{ id: 'layer-0', name: 'Layer 0', index: 0, visible: true }]
+      });
+      
+      return true;
+    } catch (error) {
+      console.error('Failed to import from URL:', error);
+      return false;
     }
   },
 

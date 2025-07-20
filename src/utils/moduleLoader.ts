@@ -11,6 +11,7 @@ export interface ModuleCSVRow {
   cadUrl: string;
   description: string;
   defaultParams: string;
+  autodeskInventor?: string;
 }
 
 export function parseCSV(csvText: string): ModuleCSVRow[] {
@@ -18,7 +19,7 @@ export function parseCSV(csvText: string): ModuleCSVRow[] {
   const headers = lines[0].split(';');
   
   return lines.slice(1).map(line => {
-    const values = line.split(',');
+    const values = line.split(';');
     const row: Record<string, string> = {};
     headers.forEach((header, index) => {
       row[header.trim()] = values[index]?.trim() || '';
@@ -56,7 +57,8 @@ export function csvRowToModuleDefinition(row: ModuleCSVRow): ModuleDefinition {
     cadUrl: addConfiguratorPrefix(row.cadUrl),
     description: row.description,
     defaultParams,
-    isWildCard: (defaultParams as { isWildCard?: boolean }).isWildCard || false
+    isWildCard: (defaultParams as { isWildCard?: boolean }).isWildCard || false,
+    autodeskInventor: row.autodeskInventor
   };
 }
 

@@ -21,6 +21,7 @@ export interface ModuleDefinition {
   description?: string;
   defaultParams?: Record<string, unknown>;
   isWildCard?: boolean;
+  autodeskInventor?: string;
 }
 
 export interface PlacedModule {

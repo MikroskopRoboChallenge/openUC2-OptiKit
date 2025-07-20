@@ -41,6 +41,41 @@
   border-left: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+}
+
+.right-sidebar-tabs {
+  display: flex;
+  background: var(--openuc2-blue);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.tab-button {
+  flex: 1;
+  padding: 12px 8px;
+  background: transparent;
+  border: none;
+  color: white;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.tab-button:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.tab-button.active {
+  background: white;
+  color: var(--openuc2-blue);
+  font-weight: 600;
+}
+
+.right-sidebar-content {
+  flex: 1;
   overflow-y: auto;
 }
 

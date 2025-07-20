@@ -5,12 +5,26 @@ import './styles/brand.css'
 import './App.css'
 
 function App() {
-  const { loadModules, loadStateFromStorage, saveStateToStorage } = useAppStore();
+  const { loadModules, loadStateFromStorage, saveStateToStorage, importFromUrl } = useAppStore();
 
   useEffect(() => {
     // Load modules and state on app start
     loadModules().then(() => {
       loadStateFromStorage();
+      
+      // Check for URL parameters to load a layout
+      const urlParams = new URLSearchParams(window.location.search);
+      const layoutUrl = urlParams.get('layout');
+      
+      if (layoutUrl) {
+        importFromUrl(layoutUrl).then(success => {
+          if (success) {
+            console.log('Layout loaded from URL:', layoutUrl);
+          } else {
+            console.error('Failed to load layout from URL:', layoutUrl);
+          }
+        });
+      }
     });
 
     // Auto-save state every 5 seconds
@@ -28,7 +42,7 @@ function App() {
       clearInterval(saveInterval);
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [loadModules, loadStateFromStorage, saveStateToStorage]);
+  }, [loadModules, loadStateFromStorage, saveStateToStorage, importFromUrl]);
 
   return <Layout />
 }

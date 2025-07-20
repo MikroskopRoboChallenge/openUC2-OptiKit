@@ -7,7 +7,10 @@ export const Toolbar: React.FC = () => {
     grid, 
     setGridConfig, 
     exportData, 
+    exportDataWithScreenshot,
+    exportToPyInventor,
     importData, 
+    importFromUrl,
     undo, 
     redo,
     centerView,
@@ -47,6 +50,45 @@ export const Toolbar: React.FC = () => {
       // Fallback for older browsers - prompt for filename
       const defaultName = 'optikit-layout.json';
       const filename = prompt('Enter filename:', defaultName) || defaultName;
+      
+      const blob = new Blob([data], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename.endsWith('.json') ? filename : filename + '.json';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+  };
+
+  const handleExportPyInventor = () => {
+    const data = exportToPyInventor();
+    
+    // Use File System Access API if available, otherwise fallback to prompt
+    if ('showSaveFilePicker' in window) {
+      const saveFile = async () => {
+        try {
+          const fileHandle = await (window as unknown as { showSaveFilePicker: (options: unknown) => Promise<FileSystemFileHandle> }).showSaveFilePicker({
+            types: [{
+              description: 'JSON files',
+              accept: {
+                'application/json': ['.json'],
+              },
+            }],
+            suggestedName: 'pyinventor-layout.json',
+          });
+          
+          const writable = await fileHandle.createWritable();
+          await writable.write(data);
+          await writable.close();
+        } catch (error) {
+          console.log('Save cancelled or failed:', error);
+        }
+      };
+      saveFile();
+    } else {
+      const defaultName = 'pyinventor-layout.json';
+      const filename = prompt('Enter filename for PyInventor export:', defaultName) || defaultName;
       
       const blob = new Blob([data], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
@@ -202,6 +244,18 @@ openUC2 team via GitHub repository
     input.click();
   };
 
+  const handleImportFromUrl = async () => {
+    const url = prompt('Enter URL to JSON layout file:');
+    if (url) {
+      const success = await importFromUrl(url);
+      if (success) {
+        alert('Layout imported successfully!');
+      } else {
+        alert('Failed to import layout from URL. Please check the URL and try again.');
+      }
+    }
+  };
+
   return (
     <div className="toolbar">
       <div className="toolbar-logo">
@@ -310,6 +364,20 @@ openUC2 team via GitHub repository
           title="Import Layout"
         >
           📁
+        </button>
+        <button 
+          className="toolbar-button"
+          onClick={handleImportFromUrl}
+          title="Import from URL"
+        >
+          🌐
+        </button>
+        <button 
+          className="toolbar-button"
+          onClick={handleExportPyInventor}
+          title="Export for PyInventor"
+        >
+          🔧
         </button>
         <button 
           className="toolbar-button"
