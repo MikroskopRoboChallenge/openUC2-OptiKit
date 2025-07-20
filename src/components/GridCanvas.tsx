@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { Stage, Layer, Line, Rect, Text, Group, Image } from 'react-konva';
 import { useAppStore } from '../stores/appStore';
 import { AnnotationCanvas } from './AnnotationCanvas';
@@ -112,7 +112,7 @@ export const GridCanvas: React.FC = () => {
         canvasElement.removeEventListener('mobile-drop', handleMobileDrop as EventListener);
       }
     };
-  }, [viewport.pan.x, viewport.pan.y, viewport.zoom, currentLayerIndex, placeModule]);
+  }, [viewport.pan.x, viewport.pan.y, viewport.zoom, currentLayerIndex, placeModule, pixelToGrid, snapToGrid]);
 
   // Load SVG images for modules
   useEffect(() => {
@@ -232,7 +232,7 @@ export const GridCanvas: React.FC = () => {
   };
 
   // Snap position to grid
-  const snapToGrid = (pos: Point): Point => {
+  const snapToGrid = useCallback((pos: Point): Point => {
     if (!grid.snapEnabled) return pos;
     
     const cellSize = grid.cellSize; // Don't multiply by zoom for snapping
@@ -240,25 +240,25 @@ export const GridCanvas: React.FC = () => {
       x: Math.round(pos.x / cellSize) * cellSize,
       y: Math.round(pos.y / cellSize) * cellSize
     };
-  };
+  }, [grid.snapEnabled, grid.cellSize]);
 
   // Convert pixel coordinates to grid coordinates
-  const pixelToGrid = (pos: Point): Point => {
+  const pixelToGrid = useCallback((pos: Point): Point => {
     const cellSize = grid.cellSize; // Don't multiply by zoom for grid conversion
     return {
       x: Math.floor(pos.x / cellSize),
       y: Math.floor(pos.y / cellSize)
     };
-  };
+  }, [grid.cellSize]);
 
   // Convert grid coordinates to pixel coordinates
-  const gridToPixel = (pos: Point): Point => {
+  const gridToPixel = useCallback((pos: Point): Point => {
     const cellSize = grid.cellSize; // Don't multiply by zoom for grid conversion
     return {
       x: pos.x * cellSize,
       y: pos.y * cellSize
     };
-  };
+  }, [grid.cellSize]);
 
   // Handle module drag start
   const handleModuleDragStart = () => {
@@ -448,10 +448,13 @@ export const GridCanvas: React.FC = () => {
             });
           }
         }}
-        draggable={!isDraggingModule && annotationMode === 'none'}
-        onDragStart={() => {
+        draggable={annotationMode === 'none'}
+        onDragStart={(e) => {
           // Prevent stage dragging while dragging modules
-          if (isDraggingModule) return false;
+          if (isDraggingModule) {
+            e.evt.preventDefault();
+            return false;
+          }
         }}
         onDragEnd={(e) => {
           if (!isDraggingModule) {

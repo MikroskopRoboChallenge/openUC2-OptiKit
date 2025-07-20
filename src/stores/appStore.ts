@@ -48,6 +48,7 @@ interface AppStore extends AppState {
   removeModule: (moduleId: string) => void;
   updateModuleCustomText: (moduleId: string, customText: string) => void;
   addAnnotation: (annotation: Omit<Annotation, 'id'>) => void;
+  moveAnnotation: (annotationId: string, position: Point) => void;
   removeAnnotation: (annotationId: string) => void;
   selectItem: (itemId: string | null, itemType: 'module' | 'annotation' | null) => void;
   setGridConfig: (config: Partial<AppState['grid']>) => void;
@@ -67,6 +68,7 @@ interface AppStore extends AppState {
   saveStateToStorage: () => void;
   loadStateFromStorage: () => void;
   downloadScreenshot: () => void;
+  clearAll: () => void;
 }
 
 export const useAppStore = create<AppStore>((set, get) => ({
@@ -266,6 +268,19 @@ export const useAppStore = create<AppStore>((set, get) => ({
     set(state => ({
       annotations: [...state.annotations, newAnnotation]
     }));
+  },
+
+  moveAnnotation: (annotationId: string, position: Point) => {
+    set(state => ({
+      annotations: state.annotations.map(annotation =>
+        annotation.id === annotationId && annotation.points
+          ? { ...annotation, points: [position, ...annotation.points.slice(1)] }
+          : annotation
+      )
+    }));
+    
+    // Save state after moving
+    get().saveStateToStorage();
   },
 
   removeAnnotation: (annotationId: string) => {
@@ -596,7 +611,8 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
   shareToGitHubDiscussions: async () => {
     const state = get();
-    const setup = await state.exportData();
+    // Export without screenshot to reduce URL length
+    const setup = await state.exportDataWithScreenshot('');
     
     // Create GitHub discussion URL with encoded JSON
     const title = encodeURIComponent("New Optik‑setup from OpenUC2 OptiKit");
@@ -622,23 +638,37 @@ export const useAppStore = create<AppStore>((set, get) => ({
       const { default: JSZip } = await import('jszip');
       const zip = new JSZip();
       
-      // Get unique CAD files from placed modules
-      const cadFiles = new Set<string>();
+      // Count occurrences of each module and collect CAD files
+      const moduleCountMap = new Map<string, number>();
+      const moduleToCADMap = new Map<string, string>();
+      
       state.placedModules.forEach(module => {
         const moduleDefinition = state.modules.find(m => m.id === module.moduleId);
         if (moduleDefinition?.cadUrl) {
-          cadFiles.add(moduleDefinition.cadUrl);
+          const count = moduleCountMap.get(module.moduleId) || 0;
+          moduleCountMap.set(module.moduleId, count + 1);
+          moduleToCADMap.set(module.moduleId, moduleDefinition.cadUrl);
         }
       });
 
-      // Fetch each STL file and add to zip
-      const promises = Array.from(cadFiles).map(async (cadUrl) => {
+      // Fetch each STL file and add multiple copies to zip
+      const promises = Array.from(moduleCountMap.entries()).map(async ([moduleId, count]) => {
+        const cadUrl = moduleToCADMap.get(moduleId);
+        if (!cadUrl) return;
+        
         try {
           const response = await fetch(cadUrl);
           if (response.ok) {
             const blob = await response.blob();
-            const filename = cadUrl.split('/').pop() || 'unknown.stl';
-            zip.file(filename, blob);
+            const baseFilename = cadUrl.split('/').pop() || 'unknown.stl';
+            const nameWithoutExt = baseFilename.replace(/\.stl$/i, '');
+            const ext = '.stl';
+            
+            // Add multiple copies with numbered suffixes
+            for (let i = 1; i <= count; i++) {
+              const filename = count > 1 ? `${nameWithoutExt}_copy${i}${ext}` : baseFilename;
+              zip.file(filename, blob);
+            }
           }
         } catch (error) {
           console.warn(`Failed to fetch ${cadUrl}:`, error);
@@ -660,5 +690,26 @@ export const useAppStore = create<AppStore>((set, get) => ({
       console.error('Failed to create STL bundle:', error);
       alert('Failed to create STL bundle');
     }
+  },
+
+  clearAll: () => {
+    const state = get();
+    // Create snapshot for undo functionality
+    state.pushToHistory({
+      placedModules: state.placedModules,
+      annotations: state.annotations,
+      layers: state.layers,
+      activeLayerId: state.activeLayerId
+    });
+    
+    set({
+      placedModules: [],
+      annotations: [],
+      selectedItemId: null,
+      selectedItemType: null
+    });
+    
+    // Save state after clearing
+    get().saveStateToStorage();
   }
 }));

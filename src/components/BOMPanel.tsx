@@ -11,21 +11,24 @@ import {
   TableHead,
   TableRow,
   Paper,
-  Chip
+  Chip,
+  IconButton,
+  Tooltip
 } from '@mui/material';
 import {
   Receipt as BOMIcon,
-  Inventory as InventoryIcon
+  Inventory as InventoryIcon,
+  Delete as DeleteIcon
 } from '@mui/icons-material';
 import { useAppStore } from '../stores/appStore';
 import type { ModuleDefinition } from '../types';
 
 export const BOMPanel: React.FC = () => {
-  const { placedModules, modules } = useAppStore();
+  const { placedModules, modules, removeModule } = useAppStore();
 
   // Calculate BOM from placed modules
   const bomItems = React.useMemo(() => {
-    const bomMap = new Map<string, { module: ModuleDefinition; count: number; totalPrice: number }>();
+    const bomMap = new Map<string, { module: ModuleDefinition; count: number; totalPrice: number; moduleIds: string[] }>();
     
     placedModules.forEach(placedModule => {
       const moduleDefinition = modules.find(m => m.id === placedModule.moduleId);
@@ -37,11 +40,13 @@ export const BOMPanel: React.FC = () => {
         if (existing) {
           existing.count += 1;
           existing.totalPrice += price;
+          existing.moduleIds.push(placedModule.id);
         } else {
           bomMap.set(key, {
             module: moduleDefinition,
             count: 1,
-            totalPrice: price
+            totalPrice: price,
+            moduleIds: [placedModule.id]
           });
         }
       }
@@ -51,6 +56,12 @@ export const BOMPanel: React.FC = () => {
   }, [placedModules, modules]);
 
   const totalCost = bomItems.reduce((sum, item) => sum + item.totalPrice, 0);
+
+  const handleDeleteModule = (moduleIds: string[], moduleName: string) => {
+    if (confirm(`Delete all ${moduleName} modules from the layout?`)) {
+      moduleIds.forEach(moduleId => removeModule(moduleId));
+    }
+  };
 
   return (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -123,6 +134,7 @@ export const BOMPanel: React.FC = () => {
                     <TableCell align="center" sx={{ fontWeight: 'bold' }}>Qty</TableCell>
                     <TableCell align="right" sx={{ fontWeight: 'bold' }}>Unit</TableCell>
                     <TableCell align="right" sx={{ fontWeight: 'bold' }}>Total</TableCell>
+                    <TableCell align="center" sx={{ fontWeight: 'bold' }}>Action</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -165,6 +177,17 @@ export const BOMPanel: React.FC = () => {
                           <Typography variant="body2" sx={{ fontWeight: 500 }}>
                             ${item.totalPrice.toFixed(2)}
                           </Typography>
+                        </TableCell>
+                        <TableCell align="center">
+                          <Tooltip title={`Delete all ${item.module.name} modules`}>
+                            <IconButton 
+                              size="small"
+                              color="error"
+                              onClick={() => handleDeleteModule(item.moduleIds, item.module.name)}
+                            >
+                              <DeleteIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
                         </TableCell>
                       </TableRow>
                     );

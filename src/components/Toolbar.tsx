@@ -27,7 +27,8 @@ import {
   GitHub as GitHubIcon,
   Help as HelpIcon,
   Lock as PrivacyIcon,
-  ViewInAr as LogoIcon
+  ViewInAr as LogoIcon,
+  Clear as ClearIcon
 } from '@mui/icons-material';
 import { useAppStore } from '../stores/appStore';
 
@@ -45,7 +46,8 @@ export const Toolbar: React.FC = () => {
     centerView,
     annotationMode,
     setAnnotationMode,
-    downloadScreenshot
+    downloadScreenshot,
+    clearAll
   } = useAppStore();
 
   const handleExport = async () => {
@@ -212,6 +214,12 @@ openUC2 team via GitHub repository
       } else {
         alert('Failed to import layout from URL. Please check the URL and try again.');
       }
+    }
+  };
+
+  const handleClear = () => {
+    if (confirm('Are you sure you want to clear all modules and annotations? This action can be undone.')) {
+      clearAll();
     }
   };
 
@@ -386,6 +394,16 @@ openUC2 team via GitHub repository
               size="small"
             >
               <STLIcon />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Clear All">
+            <IconButton 
+              color="inherit"
+              onClick={handleClear}
+              size="small"
+              sx={{ color: 'warning.main' }}
+            >
+              <ClearIcon />
             </IconButton>
           </Tooltip>
           <Tooltip title="Share to GitHub Discussions">

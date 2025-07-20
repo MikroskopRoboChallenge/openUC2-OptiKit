@@ -17,6 +17,7 @@ export const AnnotationCanvas: React.FC<AnnotationCanvasProps> = ({
     annotations, 
     annotationMode, 
     addAnnotation, 
+    moveAnnotation,
     selectItem, 
     selectedItemId,
     setAnnotationMode 
@@ -130,7 +131,12 @@ export const AnnotationCanvas: React.FC<AnnotationCanvasProps> = ({
             fontSize={(annotation.style?.fontSize || 14) / viewport.zoom}
             fontFamily={annotation.style?.fontFamily || 'Arial'}
             fill={strokeColor}
+            draggable
             onClick={() => selectItem(annotation.id, 'annotation')}
+            onDragEnd={(e) => {
+              const pos = e.target.position();
+              moveAnnotation(annotation.id, pos);
+            }}
           />
         );
       }
