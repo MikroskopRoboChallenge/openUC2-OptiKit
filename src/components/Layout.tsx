@@ -19,13 +19,14 @@ import { LayerPanel } from './LayerPanel';
 import { PropertyPanel } from './PropertyPanel';
 import { BOMPanel } from './BOMPanel';
 import { Toolbar } from './Toolbar';
+import { useAppStore } from '../stores/appStore';
 
 export const Layout: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [leftSidebarOpen, setLeftSidebarOpen] = useState(true);
   const [rightSidebarOpen, setRightSidebarOpen] = useState(true);
-  const [activeRightTab, setActiveRightTab] = useState<'layers' | 'properties' | 'bom'>('layers');
+  const { activeRightTab, setActiveRightTab } = useAppStore();
 
   useEffect(() => {
     // Always show sidebars when switching to desktop
@@ -35,7 +36,7 @@ export const Layout: React.FC = () => {
     }
   }, [isMobile]);
 
-  const sidebarWidth = 300;
+  const sidebarWidth = 400;
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>

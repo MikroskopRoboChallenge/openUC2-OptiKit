@@ -74,6 +74,7 @@ interface AppStore extends AppState {
   loadStateFromStorage: () => void;
   downloadScreenshot: () => void;
   clearAll: () => void;
+  setActiveRightTab: (tab: 'layers' | 'properties' | 'bom') => void;
 }
 
 export const useAppStore = create<AppStore>((set, get) => ({
@@ -99,6 +100,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
   history: [],
   historyIndex: -1,
   annotationMode: 'none',
+  activeRightTab: 'properties',
 
   // Actions
   loadModules: async () => {
@@ -172,7 +174,10 @@ export const useAppStore = create<AppStore>((set, get) => ({
     };
 
     set(state => ({
-      placedModules: [...state.placedModules, newModule]
+      placedModules: [...state.placedModules, newModule],
+      selectedItemId: newModule.id,
+      selectedItemType: 'module',
+      activeRightTab: 'properties'
     }));
   },
 
@@ -934,5 +939,9 @@ export const useAppStore = create<AppStore>((set, get) => ({
     
     // Save state after clearing
     get().saveStateToStorage();
+  },
+
+  setActiveRightTab: (tab: 'layers' | 'properties' | 'bom') => {
+    set({ activeRightTab: tab });
   }
 }));

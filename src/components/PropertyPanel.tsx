@@ -7,7 +7,15 @@ import {
   Button,
   TextField,
   Chip,
-  Paper
+  Paper,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions
 } from '@mui/material';
 import {
   RotateRight as RotateIcon,
@@ -15,7 +23,8 @@ import {
   Edit as EditIcon,
   Save as SaveIcon,
   Cancel as CancelIcon,
-  Settings as SettingsIcon
+  Settings as SettingsIcon,
+  Download as DownloadIcon
 } from '@mui/icons-material';
 import { useAppStore } from '../stores/appStore';
 
@@ -29,11 +38,62 @@ export const PropertyPanel: React.FC = () => {
     removeModule,
     removeAnnotation,
     rotateModule,
-    updateModuleCustomText
+    updateModuleCustomText,
+    exportData
   } = useAppStore();
 
   const [isEditingText, setIsEditingText] = useState(false);
   const [editText, setEditText] = useState('');
+  const [metadataDialogOpen, setMetadataDialogOpen] = useState(false);
+  const [metadataForm, setMetadataForm] = useState({
+    name: '',
+    category: 'General',
+    description: '',
+    screenshot: ''
+  });
+
+  const categories = ['General', 'Microscopy', 'Astronomy', 'Spectroscopy', 'Imaging', 'Laser'];
+
+  const handleOpenMetadataDialog = () => {
+    setMetadataForm({
+      name: '',
+      category: 'General',
+      description: '',
+      screenshot: ''
+    });
+    setMetadataDialogOpen(true);
+  };
+
+  const handleCloseMetadataDialog = () => {
+    setMetadataDialogOpen(false);
+  };
+
+  const handleSaveMetadata = async () => {
+    // Get current setup data
+    const currentSetup = await exportData();
+    
+    // Create setup with metadata
+    const setupWithMetadata = {
+      ...JSON.parse(currentSetup),
+      name: metadataForm.name,
+      category: metadataForm.category,
+      description: metadataForm.description,
+      screenshot: metadataForm.screenshot
+    };
+
+    // Download as JSON file
+    const blob = new Blob([JSON.stringify(setupWithMetadata, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${metadataForm.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    handleCloseMetadataDialog();
+  };
 
   if (!selectedItemId || !selectedItemType) {
     return (
@@ -42,6 +102,28 @@ export const PropertyPanel: React.FC = () => {
           <SettingsIcon />
           Properties
         </Typography>
+        
+        <Card sx={{ mb: 2 }}>
+          <CardContent>
+            <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 600 }}>
+              Setup Metadata
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Add metadata to your current optical setup for easy sharing and organization.
+            </Typography>
+            
+            <Button 
+              variant="contained" 
+              startIcon={<DownloadIcon />}
+              onClick={handleOpenMetadataDialog}
+              fullWidth
+              size="small"
+            >
+              Export Setup with Metadata
+            </Button>
+          </CardContent>
+        </Card>
+        
         <Paper 
           sx={{ 
             flex: 1, 
@@ -51,8 +133,8 @@ export const PropertyPanel: React.FC = () => {
             bgcolor: 'grey.50'
           }}
         >
-          <Typography variant="body2" color="textSecondary">
-            Select an item to view its properties
+          <Typography variant="body2" color="textSecondary" sx={{ textAlign: 'center' }}>
+            Select a component to view and edit its properties
           </Typography>
         </Paper>
       </Box>
@@ -288,6 +370,73 @@ export const PropertyPanel: React.FC = () => {
         {selectedItemType === 'module' && renderModuleProperties()}
         {selectedItemType === 'annotation' && renderAnnotationProperties()}
       </Box>
+
+      {/* Metadata Entry Dialog */}
+      <Dialog open={metadataDialogOpen} onClose={handleCloseMetadataDialog} maxWidth="md" fullWidth>
+        <DialogTitle>Export Setup with Metadata</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+            Create metadata for your current optical setup. This will export your setup with the specified information.
+          </Typography>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+            <TextField
+              autoFocus
+              margin="dense"
+              label="Setup Name"
+              fullWidth
+              variant="outlined"
+              value={metadataForm.name}
+              onChange={(e) => setMetadataForm({ ...metadataForm, name: e.target.value })}
+              required
+            />
+            <FormControl fullWidth>
+              <InputLabel>Category</InputLabel>
+              <Select
+                value={metadataForm.category}
+                label="Category"
+                onChange={(e) => setMetadataForm({ ...metadataForm, category: e.target.value })}
+              >
+                {categories.map((category) => (
+                  <MenuItem key={category} value={category}>
+                    {category}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <TextField
+              margin="dense"
+              label="Description"
+              fullWidth
+              multiline
+              rows={3}
+              variant="outlined"
+              value={metadataForm.description}
+              onChange={(e) => setMetadataForm({ ...metadataForm, description: e.target.value })}
+              placeholder="Describe your optical setup, its purpose, and key features..."
+            />
+            <TextField
+              margin="dense"
+              label="Screenshot URL (optional)"
+              fullWidth
+              variant="outlined"
+              value={metadataForm.screenshot}
+              onChange={(e) => setMetadataForm({ ...metadataForm, screenshot: e.target.value })}
+              placeholder="https://example.com/screenshot.png"
+              helperText="Provide a URL to an image showing your setup"
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseMetadataDialog}>Cancel</Button>
+          <Button 
+            onClick={handleSaveMetadata} 
+            variant="contained"
+            disabled={!metadataForm.name.trim()}
+          >
+            Export Setup
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

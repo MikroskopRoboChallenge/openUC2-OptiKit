@@ -21,7 +21,7 @@ import {
   MenuItem,
   Fab
 } from '@mui/material';
-import { Add as AddIcon } from '@mui/icons-material';
+import { Add as AddIcon, Refresh as RefreshIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '../stores/appStore';
 
@@ -337,9 +337,19 @@ export const SetupBrowser: React.FC = () => {
               Browse and load pre-built optical configurations from the openUC2 community
             </Typography>
           </Box>
-          <Button variant="outlined" onClick={() => navigate('/')}>
-            Back to Editor
-          </Button>
+          <Box display="flex" gap={1}>
+            <Button 
+              variant="outlined" 
+              startIcon={<RefreshIcon />}
+              onClick={fetchSetups}
+              disabled={loading}
+            >
+              Refresh
+            </Button>
+            <Button variant="outlined" onClick={() => navigate('/')}>
+              Back to Editor
+            </Button>
+          </Box>
         </Box>
 
         <Box 

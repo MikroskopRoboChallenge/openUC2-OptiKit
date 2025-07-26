@@ -88,6 +88,8 @@ export interface AppState {
   history: StateSnapshot[]; // Command history for undo/redo
   historyIndex: number;
   annotationMode: 'none' | 'line' | 'arrow' | 'text' | 'optical-axis';
+  // UI state
+  activeRightTab: 'layers' | 'properties' | 'bom';
 }
 
 export interface Command {
