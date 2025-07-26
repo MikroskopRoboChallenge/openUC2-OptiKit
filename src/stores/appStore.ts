@@ -510,11 +510,54 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
   importFromUrl: async (url: string) => {
     try {
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch JSON from URL: ${response.status}`);
+      let finalUrl = url;
+      let data: string;
+
+      // Check if it's a GitHub URL and convert to API or CORS-friendly format
+      if (url.includes('github.com') || url.includes('raw.githubusercontent.com')) {
+        // Convert GitHub URLs to use raw.githubusercontent.com which has better CORS support
+        if (url.includes('github.com') && url.includes('/blob/')) {
+          // Convert from blob URL to raw URL
+          finalUrl = url.replace('github.com', 'raw.githubusercontent.com').replace('/blob/', '/');
+        }
+        
+        // Try direct fetch first (works with raw.githubusercontent.com)
+        try {
+          const response = await fetch(finalUrl);
+          if (!response.ok) {
+            throw new Error(`Failed to fetch: ${response.status}`);
+          }
+          data = await response.text();
+        } catch (directError) {
+          console.warn('Direct fetch failed, trying GitHub API:', directError);
+          
+          // Extract GitHub repo info and try API approach
+          const githubMatch = url.match(/github\.com\/([^/]+)\/([^/]+)\/(?:blob|raw)\/([^/]+)\/(.+)/);
+          if (githubMatch) {
+            const [, owner, repo, branch, path] = githubMatch;
+            const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`;
+            
+            const apiResponse = await fetch(apiUrl);
+            if (!apiResponse.ok) {
+              throw new Error(`GitHub API failed: ${apiResponse.status}`);
+            }
+            
+            const apiData = await apiResponse.json();
+            // GitHub API returns base64 encoded content
+            data = atob(apiData.content);
+          } else {
+            throw directError;
+          }
+        }
+      } else {
+        // For non-GitHub URLs, try direct fetch
+        const response = await fetch(finalUrl);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch JSON from URL: ${response.status}`);
+        }
+        data = await response.text();
       }
-      const data = await response.text();
+
       const parsed = JSON.parse(data);
       
       // Check if it's the compact GitHub discussions format
