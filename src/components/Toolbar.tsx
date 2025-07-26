@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   AppBar, 
   Toolbar as MuiToolbar, 
@@ -6,7 +7,8 @@ import {
   IconButton, 
   Divider,
   Box,
-  Tooltip
+  Tooltip,
+  Button
 } from '@mui/material';
 import {
   Undo as UndoIcon,
@@ -29,11 +31,17 @@ import {
   Lock as PrivacyIcon,
   ViewInAr as LogoIcon,
   Clear as ClearIcon,
-  Link as LinkIcon
+  Link as LinkIcon,
+  Dashboard as SetupIcon,
+  Edit as EditorIcon
 } from '@mui/icons-material';
 import { useAppStore } from '../stores/appStore';
 
 export const Toolbar: React.FC = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const isEditorPage = location.pathname === '/';
+  
   const { 
     grid, 
     setGridConfig, 
@@ -258,7 +266,26 @@ openUC2 team via GitHub repository
           </Typography>
         </Box>
 
+        {/* Navigation Section */}
+        <Box sx={{ display: 'flex', gap: 0.5, mr: 1 }}>
+          <Tooltip title={isEditorPage ? "Switch to Setup Browser" : "Switch to Editor"}>
+            <Button
+              color="inherit"
+              startIcon={isEditorPage ? <SetupIcon /> : <EditorIcon />}
+              onClick={() => navigate(isEditorPage ? '/setups' : '/')}
+              size="small"
+              sx={{ textTransform: 'none' }}
+            >
+              {isEditorPage ? 'Browse Setups' : 'Editor'}
+            </Button>
+          </Tooltip>
+        </Box>
+
         <Divider orientation="vertical" flexItem sx={{ mx: 1, bgcolor: 'rgba(255,255,255,0.2)' }} />
+
+        {/* Editor-only controls */}
+        {isEditorPage && (
+          <>
 
         {/* Undo/Redo Group */}
         <Box sx={{ display: 'flex', gap: 0.5 }}>
@@ -446,6 +473,8 @@ openUC2 team via GitHub repository
         </Box>
 
         <Divider orientation="vertical" flexItem sx={{ mx: 1, bgcolor: 'rgba(255,255,255,0.2)' }} />
+          </>
+        )}
 
         {/* Help Section */}
         <Box sx={{ display: 'flex', gap: 0.5 }}>
@@ -472,7 +501,7 @@ openUC2 team via GitHub repository
         {/* Title */}
         <Box sx={{ flexGrow: 1, display: 'flex', justifyContent: 'center' }}>
           <Typography variant="h5" component="h1" sx={{ fontWeight: 400 }}>
-            OptiKit - 2D Grid Builder
+            {isEditorPage ? 'OptiKit - 2D Grid Builder' : 'Setup Browser'}
           </Typography>
         </Box>
       </MuiToolbar>

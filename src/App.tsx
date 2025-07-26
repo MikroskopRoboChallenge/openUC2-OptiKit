@@ -1,7 +1,9 @@
 import { useEffect } from 'react'
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { ThemeProvider } from '@mui/material/styles'
 import { CssBaseline } from '@mui/material'
-import { Layout } from './components/Layout'
+import { EditorPage } from './components/EditorPage'
+import { SetupBrowser } from './components/SetupBrowser'
 import { useAppStore } from './stores/appStore'
 import { materialTheme } from './theme/materialTheme'
 import './styles/brand.css'
@@ -65,7 +67,12 @@ function App() {
   return (
     <ThemeProvider theme={materialTheme}>
       <CssBaseline />
-      <Layout />
+      <Router basename="/configurator">
+        <Routes>
+          <Route path="/" element={<EditorPage />} />
+          <Route path="/setups" element={<SetupBrowser />} />
+        </Routes>
+      </Router>
     </ThemeProvider>
   )
 }

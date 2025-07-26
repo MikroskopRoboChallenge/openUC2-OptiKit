@@ -1,0 +1,413 @@
+import React, { useState, useEffect } from 'react';
+import {
+  Box,
+  Card,
+  CardContent,
+  CardMedia,
+  Typography,
+  Chip,
+  Button,
+  CircularProgress,
+  Alert,
+  Container
+} from '@mui/material';
+import { useNavigate } from 'react-router-dom';
+import { useAppStore } from '../stores/appStore';
+
+interface SetupMetadata {
+  name: string;
+  category: string;
+  description: string;
+  image?: string;
+  path: string;
+  url: string;
+}
+
+export const SetupBrowser: React.FC = () => {
+  const navigate = useNavigate();
+  const { importFromUrl } = useAppStore();
+  const [setups, setSetups] = useState<SetupMetadata[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchSetups();
+  }, []);
+
+  const fetchSetups = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Try to fetch from GitHub API first
+      try {
+        const apiUrl = 'https://api.github.com/repos/beniroquai/openUC2-OptiKit-Store/contents/setups';
+        const response = await fetch(apiUrl);
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch setups: ${response.status}`);
+        }
+
+        const files = await response.json();
+        const jsonFiles = files.filter((file: { name: string }) => file.name.endsWith('.json'));
+
+        // Fetch metadata for each setup file
+        const setupPromises = jsonFiles.map(async (file: { name: string; download_url: string; path: string }) => {
+          try {
+            const contentResponse = await fetch(file.download_url);
+            if (!contentResponse.ok) {
+              throw new Error(`Failed to fetch ${file.name}`);
+            }
+            
+            const content = await contentResponse.json();
+            
+            return {
+              name: content.name || file.name.replace('.json', ''),
+              category: content.category || 'General',
+              description: content.description || 'No description available',
+              image: content.image,
+              path: file.path,
+              url: file.download_url
+            } as SetupMetadata;
+          } catch (error) {
+            console.warn(`Failed to load metadata for ${file.name}:`, error);
+            // Return basic metadata even if the file can't be parsed
+            return {
+              name: file.name.replace('.json', ''),
+              category: 'General',
+              description: 'Configuration file',
+              path: file.path,
+              url: file.download_url
+            } as SetupMetadata;
+          }
+        });
+
+        const setupsData = await Promise.all(setupPromises);
+        setSetups(setupsData);
+        return;
+      } catch (githubError) {
+        console.warn('GitHub API fetch failed, using sample data:', githubError);
+      }
+
+      // Fallback to sample data when GitHub API is not accessible (e.g., CORS issues)
+      const sampleSetups: SetupMetadata[] = [
+        {
+          name: 'Simple Telescope',
+          category: 'Astronomy',
+          description: 'A basic refracting telescope setup using two positive lenses for astronomical observations. Perfect for viewing planets and lunar features.',
+          path: 'setups/simple-telescope.json',
+          url: 'data:application/json;base64,' + btoa(JSON.stringify({
+            name: 'Simple Telescope',
+            category: 'Astronomy',
+            description: 'A basic refracting telescope setup',
+            m: [
+              { i: 'lens-1x1', p: [0, 0, 0], r: 0 },
+              { i: 'lens-1x1', p: [200, 0, 0], r: 0 }
+            ]
+          }))
+        },
+        {
+          name: 'Microscope Setup',
+          category: 'Microscopy',
+          description: 'A compound microscope configuration with LED illumination, objective lens, and camera for biological sample imaging.',
+          path: 'setups/microscope.json',
+          url: 'data:application/json;base64,' + btoa(JSON.stringify({
+            name: 'Microscope Setup',
+            category: 'Microscopy',
+            description: 'A compound microscope configuration',
+            m: [
+              { i: 'led-470nm', p: [0, -100, 0], r: 0 },
+              { i: 'lens-1x1', p: [0, 0, 0], r: 0 },
+              { i: 'sampleholder-1x1', p: [50, 0, 0], r: 0 },
+              { i: 'lens-1x1', p: [100, 0, 0], r: 0 },
+              { i: 'camera-usb', p: [150, 0, 0], r: 0 }
+            ]
+          }))
+        },
+        {
+          name: 'Laser Interferometer',
+          category: 'Spectroscopy',
+          description: 'A Michelson interferometer setup using a laser source, beamsplitter, two mirrors, and a photodiode detector for precision measurements.',
+          path: 'setups/interferometer.json',
+          url: 'data:application/json;base64,' + btoa(JSON.stringify({
+            name: 'Laser Interferometer',
+            category: 'Spectroscopy',
+            description: 'A Michelson interferometer setup',
+            m: [
+              { i: 'laser-532nm', p: [0, 0, 0], r: 0 },
+              { i: 'beamsplitter-1x1', p: [100, 0, 0], r: 0 },
+              { i: 'mirror-1x1', p: [100, 100, 0], r: 0 },
+              { i: 'mirror-1x1', p: [200, 0, 0], r: 0 },
+              { i: 'photodiode', p: [50, 0, 0], r: 0 }
+            ]
+          }))
+        },
+        {
+          name: 'Fluorescence Filter Cube',
+          category: 'Imaging',
+          description: 'A fluorescence imaging setup with excitation LED, dichroic mirror, emission filter, and camera for fluorescent sample imaging.',
+          path: 'setups/fluorescence.json',
+          url: 'data:application/json;base64,' + btoa(JSON.stringify({
+            name: 'Fluorescence Filter Cube',
+            category: 'Imaging',
+            description: 'A fluorescence imaging setup',
+            m: [
+              { i: 'led-470nm', p: [0, -50, 0], r: 0 },
+              { i: 'filter-dichroic', p: [50, 0, 0], r: 45 },
+              { i: 'lens-1x1', p: [100, 0, 0], r: 0 },
+              { i: 'sampleholder-1x1', p: [150, 0, 0], r: 0 },
+              { i: 'filter-bandpass', p: [50, 50, 0], r: 0 },
+              { i: 'camera-usb', p: [50, 100, 0], r: 0 }
+            ]
+          }))
+        },
+        {
+          name: 'Beam Expander',
+          category: 'Laser',
+          description: 'A laser beam expansion system using two lenses to increase beam diameter while maintaining collimation for laser applications.',
+          path: 'setups/beam-expander.json',
+          url: 'data:application/json;base64,' + btoa(JSON.stringify({
+            name: 'Beam Expander',
+            category: 'Laser',
+            description: 'A laser beam expansion system',
+            m: [
+              { i: 'laser-405nm', p: [0, 0, 0], r: 0 },
+              { i: 'lens-1x1', p: [50, 0, 0], r: 0 },
+              { i: 'lens-1x1', p: [150, 0, 0], r: 0 }
+            ]
+          }))
+        },
+        {
+          name: 'Polarimetry Setup',
+          category: 'General',
+          description: 'A polarization analysis system with LED source, polarizers, sample holder, and photodiode for studying optical activity and birefringence.',
+          path: 'setups/polarimetry.json',
+          url: 'data:application/json;base64,' + btoa(JSON.stringify({
+            name: 'Polarimetry Setup',
+            category: 'General',
+            description: 'A polarization analysis system',
+            m: [
+              { i: 'led-530nm', p: [0, 0, 0], r: 0 },
+              { i: 'polfilter-1x1', p: [50, 0, 0], r: 0 },
+              { i: 'sampleholder-1x1', p: [100, 0, 0], r: 0 },
+              { i: 'polfilter-1x1', p: [150, 0, 0], r: 90 },
+              { i: 'photodiode', p: [200, 0, 0], r: 0 }
+            ]
+          }))
+        }
+      ];
+
+      // Simulate loading delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      setSetups(sampleSetups);
+    } catch (error) {
+      console.error('Error fetching setups:', error);
+      setError('Failed to load setups. Please try again later.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSetupClick = async (setup: SetupMetadata) => {
+    try {
+      // Load the setup into the editor
+      const success = await importFromUrl(setup.url);
+      if (success) {
+        // Navigate back to the editor
+        navigate('/');
+      } else {
+        alert('Failed to load the setup. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error loading setup:', error);
+      alert('Failed to load the setup. Please try again.');
+    }
+  };
+
+  const getCategoryColor = (category: string) => {
+    const colors: { [key: string]: string } = {
+      'Microscopy': '#e74c3c',
+      'Astronomy': '#3498db',
+      'Spectroscopy': '#9b59b6',
+      'Imaging': '#f39c12',
+      'Laser': '#e67e22',
+      'General': '#95a5a6'
+    };
+    return colors[category] || colors['General'];
+  };
+
+  if (loading) {
+    return (
+      <Container>
+        <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+          <CircularProgress />
+          <Typography variant="h6" sx={{ ml: 2 }}>
+            Loading optical setups...
+          </Typography>
+        </Box>
+      </Container>
+    );
+  }
+
+  if (error) {
+    return (
+      <Container>
+        <Box py={4}>
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {error}
+          </Alert>
+          <Button variant="contained" onClick={fetchSetups}>
+            Retry
+          </Button>
+        </Box>
+      </Container>
+    );
+  }
+
+  return (
+    <Container maxWidth="lg">
+      <Box py={4}>
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
+          <Box>
+            <Typography variant="h4" component="h1" gutterBottom>
+              Optical Setup Browser
+            </Typography>
+            <Typography variant="body1" color="text.secondary">
+              Browse and load pre-built optical configurations from the openUC2 community
+            </Typography>
+          </Box>
+          <Button variant="outlined" onClick={() => navigate('/')}>
+            Back to Editor
+          </Button>
+        </Box>
+
+        <Box 
+          sx={{ 
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+            gap: 3
+          }}
+        >
+          {setups.map((setup, index) => (
+            <Box key={index}>
+              <Card 
+                sx={{ 
+                  height: '100%', 
+                  display: 'flex', 
+                  flexDirection: 'column',
+                  cursor: 'pointer',
+                  transition: 'transform 0.2s, box-shadow 0.2s',
+                  '&:hover': {
+                    transform: 'translateY(-4px)',
+                    boxShadow: 4,
+                  }
+                }}
+                onClick={() => handleSetupClick(setup)}
+              >
+                <CardMedia
+                  component="div"
+                  sx={{
+                    height: 200,
+                    backgroundColor: '#f5f5f5',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    position: 'relative'
+                  }}
+                >
+                  {setup.image ? (
+                    <img
+                      src={setup.image}
+                      alt={setup.name}
+                      style={{
+                        maxWidth: '100%',
+                        maxHeight: '100%',
+                        objectFit: 'contain'
+                      }}
+                      onError={(e) => {
+                        // Hide broken images and show placeholder
+                        e.currentTarget.style.display = 'none';
+                      }}
+                    />
+                  ) : null}
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: 'rgba(0,0,0,0.1)',
+                      color: 'text.secondary'
+                    }}
+                  >
+                    {!setup.image && (
+                      <Typography variant="h6">
+                        🔬 {setup.name}
+                      </Typography>
+                    )}
+                  </Box>
+                </CardMedia>
+                <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+                  <Box mb={1}>
+                    <Chip
+                      label={setup.category}
+                      size="small"
+                      sx={{
+                        backgroundColor: getCategoryColor(setup.category),
+                        color: 'white',
+                        mb: 1
+                      }}
+                    />
+                  </Box>
+                  <Typography variant="h6" component="h2" gutterBottom>
+                    {setup.name}
+                  </Typography>
+                  <Typography 
+                    variant="body2" 
+                    color="text.secondary" 
+                    sx={{ 
+                      flexGrow: 1,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      display: '-webkit-box',
+                      WebkitLineClamp: 3,
+                      WebkitBoxOrient: 'vertical'
+                    }}
+                  >
+                    {setup.description}
+                  </Typography>
+                  <Button 
+                    variant="contained" 
+                    size="small" 
+                    sx={{ mt: 2, alignSelf: 'flex-start' }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleSetupClick(setup);
+                    }}
+                  >
+                    Load Setup
+                  </Button>
+                </CardContent>
+              </Card>
+            </Box>
+          ))}
+        </Box>
+
+        {setups.length === 0 && (
+          <Box textAlign="center" py={8}>
+            <Typography variant="h6" color="text.secondary">
+              No setups found
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              The setup repository might be empty or unavailable.
+            </Typography>
+          </Box>
+        )}
+      </Box>
+    </Container>
+  );
+};
