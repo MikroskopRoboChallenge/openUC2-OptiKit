@@ -202,30 +202,33 @@ export const PartLibrary: React.FC = () => {
             />
           </Box>
           
-          <Typography 
-            variant="caption" 
-            sx={{ 
-              fontWeight: 500, 
-              lineHeight: 1.2, 
-              mb: 0.5,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {module.name}
-          </Typography>
-          
-          <Chip 
-            label={`${module.footprint.width}×${module.footprint.height}`}
-            size="small"
-            variant="outlined"
-            sx={{ 
-              height: 20, 
-              fontSize: '0.65rem',
-              alignSelf: 'flex-start',
-            }}
-          />
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+            <Typography 
+              variant="caption" 
+              sx={{ 
+                fontWeight: 500, 
+                lineHeight: 1.2,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                flex: 1,
+                minWidth: 0
+              }}
+            >
+              {module.name}
+            </Typography>
+            
+            <Chip 
+              label={`${module.footprint.width}×${module.footprint.height}`}
+              size="small"
+              variant="outlined"
+              sx={{ 
+                height: 18, 
+                fontSize: '0.6rem',
+                flexShrink: 0,
+              }}
+            />
+          </Box>
         </CardContent>
       </Card>
     );

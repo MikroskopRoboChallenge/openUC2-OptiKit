@@ -488,7 +488,16 @@ export const useAppStore = create<AppStore>((set, get) => ({
         set({
           placedModules,
           annotations,
-          layers: [{ id: 'layer-0', name: 'Layer 0', index: 0, visible: true }]
+          layers: [{ id: 'layer-0', name: 'Layer 0', index: 0, visible: true }],
+          // Import metadata if available
+          setupMetadata: (compactData as CompactExport & { meta?: any }).meta || {
+            name: 'Imported Setup',
+            author: '',
+            githubAccount: '',
+            description: '',
+            category: 'General',
+            screenshot: ''
+          }
         });
         return;
       }
@@ -698,6 +707,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
       grid: state.grid,
       viewport: state.viewport,
       annotationMode: state.annotationMode,
+      setupMetadata: state.setupMetadata,
       // Don't save modules as they are loaded from CSV
       // Don't save command history
     };
@@ -839,7 +849,9 @@ export const useAppStore = create<AppStore>((set, get) => ({
         t: annotation.type,
         p: annotation.points || [],
         ...(annotation.text && { x: annotation.text })
-      }))
+      })),
+      // Include metadata in shareable links
+      meta: state.setupMetadata
     };
     
     // Base64 encode the compact JSON to make it URL-safe
@@ -852,7 +864,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
     
     // Check URL length and fallback if needed
     if (shareableUrl.length > 2000) {
-      // For very large layouts, create a simplified version
+      // For very large layouts, create a simplified version without metadata
       const simplifiedExport = {
         m: state.placedModules.map(module => ({
           i: module.moduleId,
