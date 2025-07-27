@@ -75,6 +75,16 @@ export interface StateSnapshot {
   activeLayerId: string;
 }
 
+// Setup metadata interface
+export interface SetupMetadata {
+  name: string;
+  author: string;
+  githubAccount: string;
+  description: string;
+  category: 'General' | 'Microscopy' | 'Astronomy' | 'Spectroscopy' | 'Imaging' | 'Laser';
+  screenshot: string;
+}
+
 export interface AppState {
   modules: ModuleDefinition[];
   placedModules: PlacedModule[];
@@ -88,6 +98,7 @@ export interface AppState {
   history: StateSnapshot[]; // Command history for undo/redo
   historyIndex: number;
   annotationMode: 'none' | 'line' | 'arrow' | 'text' | 'optical-axis';
+  setupMetadata: SetupMetadata;
   // UI state
   activeRightTab: 'layers' | 'properties' | 'bom';
 }

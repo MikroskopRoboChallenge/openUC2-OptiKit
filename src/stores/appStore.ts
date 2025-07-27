@@ -13,7 +13,8 @@ import type {
   StateSnapshot,
   CompactExport,
   CompactModule,
-  CompactAnnotation
+  CompactAnnotation,
+  SetupMetadata
 } from '../types';
 
 const GRID_CELL_SIZE = 50; // 50mm in pixels (assuming 1:1 scale)
@@ -75,6 +76,7 @@ interface AppStore extends AppState {
   downloadScreenshot: () => void;
   clearAll: () => void;
   setActiveRightTab: (tab: 'layers' | 'properties' | 'bom') => void;
+  updateSetupMetadata: (metadata: Partial<SetupMetadata>) => void;
 }
 
 export const useAppStore = create<AppStore>((set, get) => ({
@@ -101,6 +103,14 @@ export const useAppStore = create<AppStore>((set, get) => ({
   historyIndex: -1,
   annotationMode: 'none',
   activeRightTab: 'properties',
+  setupMetadata: {
+    name: 'Untitled Setup',
+    author: '',
+    githubAccount: '',
+    description: '',
+    category: 'General',
+    screenshot: ''
+  },
 
   // Actions
   loadModules: async () => {
@@ -431,7 +441,8 @@ export const useAppStore = create<AppStore>((set, get) => ({
       uc2_components,
       annotations: state.annotations,
       layers: state.layers,
-      screenshot: screenshotDataUrl || null,
+      ...state.setupMetadata,
+      screenshot: screenshotDataUrl || state.setupMetadata.screenshot || null,
       metadata: {
         version: "1.0",
         created: new Date().toISOString(),
@@ -943,5 +954,13 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
   setActiveRightTab: (tab: 'layers' | 'properties' | 'bom') => {
     set({ activeRightTab: tab });
+  },
+
+  updateSetupMetadata: (metadata: Partial<SetupMetadata>) => {
+    set((state) => ({
+      setupMetadata: { ...state.setupMetadata, ...metadata }
+    }));
+    // Save state after updating metadata
+    get().saveStateToStorage();
   }
 }));
