@@ -783,8 +783,9 @@ export const useAppStore = create<AppStore>((set, get) => ({
       const filename = `setup-${timestamp}.json`;
       const path = `setups/${filename}`;
       
-      // Encode content as base64
-      const content = btoa(JSON.stringify(setup, null, 2));
+      // Encode content as base64 (handle Unicode characters properly)
+      const jsonString = JSON.stringify(setup, null, 2);
+      const content = btoa(unescape(encodeURIComponent(jsonString)));
       
       // Create commit message
       const message = `Add OpenUC2 OptiKit setup: ${setup.uc2_components?.length || 0} components`;

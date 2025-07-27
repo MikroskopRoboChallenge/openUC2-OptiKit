@@ -326,7 +326,7 @@ export const SetupBrowser: React.FC = () => {
   }
 
   return (
-    <Container maxWidth="lg">
+    <Container maxWidth="lg" sx={{ height: '100vh', overflow: 'auto', pb: 4 }}>
       <Box py={4}>
         <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
           <Box>
