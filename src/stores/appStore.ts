@@ -13,7 +13,8 @@ import type {
   StateSnapshot,
   CompactExport,
   CompactModule,
-  CompactAnnotation
+  CompactAnnotation,
+  SetupMetadata
 } from '../types';
 
 const GRID_CELL_SIZE = 50; // 50mm in pixels (assuming 1:1 scale)
@@ -74,6 +75,8 @@ interface AppStore extends AppState {
   loadStateFromStorage: () => void;
   downloadScreenshot: () => void;
   clearAll: () => void;
+  setActiveRightTab: (tab: 'layers' | 'properties' | 'bom') => void;
+  updateSetupMetadata: (metadata: Partial<SetupMetadata>) => void;
 }
 
 export const useAppStore = create<AppStore>((set, get) => ({
@@ -99,6 +102,15 @@ export const useAppStore = create<AppStore>((set, get) => ({
   history: [],
   historyIndex: -1,
   annotationMode: 'none',
+  activeRightTab: 'properties',
+  setupMetadata: {
+    name: 'Untitled Setup',
+    author: '',
+    githubAccount: '',
+    description: '',
+    category: 'General',
+    screenshot: ''
+  },
 
   // Actions
   loadModules: async () => {
@@ -148,10 +160,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
     const moduleDefinition = state.modules.find(m => m.id === moduleId);
     if (!moduleDefinition) return;
 
-    // Check for collision
-    if (state.checkCollision(position, moduleDefinition.footprint, layer)) {
-      return; // Cannot place due to collision
-    }
+    // Allow modules to be placed at the same location - no collision checking
 
     // Save current state to history
     state.pushToHistory({
@@ -172,7 +181,10 @@ export const useAppStore = create<AppStore>((set, get) => ({
     };
 
     set(state => ({
-      placedModules: [...state.placedModules, newModule]
+      placedModules: [...state.placedModules, newModule],
+      selectedItemId: newModule.id,
+      selectedItemType: 'module',
+      activeRightTab: 'properties'
     }));
   },
 
@@ -184,10 +196,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
     const moduleDefinition = state.modules.find(m => m.id === module.moduleId);
     if (!moduleDefinition) return;
 
-    // Check for collision (excluding the module being moved)
-    if (state.checkCollision(position, moduleDefinition.footprint, module.layer, moduleId)) {
-      return;
-    }
+    // Allow modules to be moved to the same location as other modules - no collision checking
 
     // Save current state to history
     state.pushToHistory({
@@ -211,18 +220,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
           const moduleDefinition = state.modules.find(mod => mod.id === m.moduleId);
           if (!moduleDefinition) return m;
           
-          // Calculate new footprint after rotation
-          const currentFootprint = moduleDefinition.footprint;
-          const isRotated90or270 = rotation === 90 || rotation === 270;
-          const newFootprint = isRotated90or270 ? 
-            { width: currentFootprint.height, height: currentFootprint.width } : 
-            { width: currentFootprint.width, height: currentFootprint.height };
-          
-          // Check if the rotated module would collide
-          if (state.checkCollision(m.position, newFootprint, m.layer, moduleId)) {
-            return m; // Don't rotate if it would cause collision
-          }
-          
+          // Allow rotation even if it would overlap with other modules
           return { ...m, rotation };
         }
         return m;
@@ -426,7 +424,8 @@ export const useAppStore = create<AppStore>((set, get) => ({
       uc2_components,
       annotations: state.annotations,
       layers: state.layers,
-      screenshot: screenshotDataUrl || null,
+      ...state.setupMetadata,
+      screenshot: screenshotDataUrl || state.setupMetadata.screenshot || null,
       metadata: {
         version: "1.0",
         created: new Date().toISOString(),
@@ -472,7 +471,16 @@ export const useAppStore = create<AppStore>((set, get) => ({
         set({
           placedModules,
           annotations,
-          layers: [{ id: 'layer-0', name: 'Layer 0', index: 0, visible: true }]
+          layers: [{ id: 'layer-0', name: 'Layer 0', index: 0, visible: true }],
+          // Import metadata if available
+          setupMetadata: (compactData as CompactExport & { meta?: any }).meta || {
+            name: 'Imported Setup',
+            author: '',
+            githubAccount: '',
+            description: '',
+            category: 'General',
+            screenshot: ''
+          }
         });
         return;
       }
@@ -682,6 +690,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
       grid: state.grid,
       viewport: state.viewport,
       annotationMode: state.annotationMode,
+      setupMetadata: state.setupMetadata,
       // Don't save modules as they are loaded from CSV
       // Don't save command history
     };
@@ -757,8 +766,9 @@ export const useAppStore = create<AppStore>((set, get) => ({
       const filename = `setup-${timestamp}.json`;
       const path = `setups/${filename}`;
       
-      // Encode content as base64
-      const content = btoa(JSON.stringify(setup, null, 2));
+      // Encode content as base64 (handle Unicode characters properly)
+      const jsonString = JSON.stringify(setup, null, 2);
+      const content = btoa(unescape(encodeURIComponent(jsonString)));
       
       // Create commit message
       const message = `Add OpenUC2 OptiKit setup: ${setup.uc2_components?.length || 0} components`;
@@ -823,7 +833,9 @@ export const useAppStore = create<AppStore>((set, get) => ({
         t: annotation.type,
         p: annotation.points || [],
         ...(annotation.text && { x: annotation.text })
-      }))
+      })),
+      // Include metadata in shareable links
+      meta: state.setupMetadata
     };
     
     // Base64 encode the compact JSON to make it URL-safe
@@ -836,7 +848,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
     
     // Check URL length and fallback if needed
     if (shareableUrl.length > 2000) {
-      // For very large layouts, create a simplified version
+      // For very large layouts, create a simplified version without metadata
       const simplifiedExport = {
         m: state.placedModules.map(module => ({
           i: module.moduleId,
@@ -933,6 +945,18 @@ export const useAppStore = create<AppStore>((set, get) => ({
     });
     
     // Save state after clearing
+    get().saveStateToStorage();
+  },
+
+  setActiveRightTab: (tab: 'layers' | 'properties' | 'bom') => {
+    set({ activeRightTab: tab });
+  },
+
+  updateSetupMetadata: (metadata: Partial<SetupMetadata>) => {
+    set((state) => ({
+      setupMetadata: { ...state.setupMetadata, ...metadata }
+    }));
+    // Save state after updating metadata
     get().saveStateToStorage();
   }
 }));

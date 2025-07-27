@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   AppBar, 
   Toolbar as MuiToolbar, 
@@ -6,7 +7,8 @@ import {
   IconButton, 
   Divider,
   Box,
-  Tooltip
+  Tooltip,
+  Button
 } from '@mui/material';
 import {
   Undo as UndoIcon,
@@ -29,11 +31,17 @@ import {
   Lock as PrivacyIcon,
   ViewInAr as LogoIcon,
   Clear as ClearIcon,
-  Link as LinkIcon
+  Link as LinkIcon,
+  Dashboard as SetupIcon,
+  Edit as EditorIcon
 } from '@mui/icons-material';
 import { useAppStore } from '../stores/appStore';
 
 export const Toolbar: React.FC = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const isEditorPage = location.pathname === '/';
+  
   const { 
     grid, 
     setGridConfig, 
@@ -115,6 +123,10 @@ Best regards`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+
+  const handleSaveToGitHub = () => {
+    saveToGitHub();
   };
 
   const handleExportSTL = () => {
@@ -249,24 +261,80 @@ openUC2 team via GitHub repository
       elevation={2}
       sx={{ zIndex: 1300 }}
     >
-      <MuiToolbar sx={{ minHeight: '64px', gap: 1 }}>
+      <MuiToolbar 
+        sx={{ 
+          minHeight: { xs: '56px', sm: '64px' }, 
+          gap: { xs: 0.5, sm: 1 },
+          px: { xs: 1, sm: 2 },
+          overflow: 'hidden'
+        }}
+      >
         {/* Logo Section */}
-        <Box sx={{ display: 'flex', alignItems: 'center', mr: 2 }}>
-          <LogoIcon sx={{ fontSize: 32, mr: 1, color: 'secondary.main' }} />
-          <Typography variant="h6" component="div" sx={{ fontWeight: 500 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', mr: { xs: 1, sm: 2 } }}>
+          <LogoIcon sx={{ fontSize: { xs: 28, sm: 32 }, mr: 1, color: 'secondary.main' }} />
+          <Typography 
+            variant="h6" 
+            component="div" 
+            sx={{ 
+              fontWeight: 500,
+              fontSize: { xs: '1rem', sm: '1.25rem' },
+              display: { xs: 'none', sm: 'block' }
+            }}
+          >
             openUC2
           </Typography>
         </Box>
 
-        <Divider orientation="vertical" flexItem sx={{ mx: 1, bgcolor: 'rgba(255,255,255,0.2)' }} />
+        {/* Navigation Section - Always visible */}
+        <Box sx={{ display: 'flex', gap: 0.5, mr: 1 }}>
+          <Tooltip title={isEditorPage ? "Switch to Setup Browser" : "Switch to Editor"}>
+            <Button
+              color="inherit"
+              startIcon={isEditorPage ? <SetupIcon /> : <EditorIcon />}
+              onClick={() => navigate(isEditorPage ? '/setups' : '/')}
+              size="small"
+              sx={{ 
+                textTransform: 'none',
+                minWidth: { xs: '40px', sm: 'auto' },
+                px: { xs: 1, sm: 2 },
+                '& .MuiButton-startIcon': {
+                  mr: { xs: 0, sm: 1 }
+                }
+              }}
+            >
+              <Typography 
+                sx={{ 
+                  display: { xs: 'none', sm: 'inline' } 
+                }}
+              >
+                {isEditorPage ? 'Browse Setups' : 'Editor'}
+              </Typography>
+            </Button>
+          </Tooltip>
+        </Box>
 
-        {/* Undo/Redo Group */}
-        <Box sx={{ display: 'flex', gap: 0.5 }}>
+        <Divider 
+          orientation="vertical" 
+          flexItem 
+          sx={{ 
+            mx: { xs: 0.5, sm: 1 }, 
+            bgcolor: 'rgba(255,255,255,0.2)',
+            display: { xs: 'none', sm: 'block' }
+          }} 
+        />
+
+        {/* Editor-only controls */}
+        {isEditorPage && (
+          <>
+
+        {/* Primary Controls - Always visible on mobile */}
+        <Box sx={{ display: 'flex', gap: 0.5, flex: 1, overflow: 'hidden' }}>
           <Tooltip title="Undo">
             <IconButton 
               color="inherit"
               onClick={undo}
               size="small"
+              sx={{ minWidth: { xs: 40, sm: 'auto' } }}
             >
               <UndoIcon />
             </IconButton>
@@ -276,49 +344,49 @@ openUC2 team via GitHub repository
               color="inherit"
               onClick={redo}
               size="small"
+              sx={{ minWidth: { xs: 40, sm: 'auto' } }}
             >
               <RedoIcon />
             </IconButton>
           </Tooltip>
+
+          {/* Grid Controls - Hidden on small mobile */}
+          <Box sx={{ display: { xs: 'none', sm: 'flex' }, gap: 0.5 }}>
+            <Tooltip title="Toggle Grid">
+              <IconButton 
+                color={grid.gridVisible ? "secondary" : "inherit"}
+                onClick={() => setGridConfig({ gridVisible: !grid.gridVisible })}
+                size="small"
+              >
+                <GridIcon />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Toggle Snap to Grid">
+              <IconButton 
+                color={grid.snapEnabled ? "secondary" : "inherit"}
+                onClick={() => setGridConfig({ snapEnabled: !grid.snapEnabled })}
+                size="small"
+              >
+                <SnapIcon />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Center View">
+              <IconButton 
+                color="inherit"
+                onClick={centerView}
+                size="small"
+              >
+                <CenterIcon />
+              </IconButton>
+            </Tooltip>
+          </Box>
         </Box>
 
-        <Divider orientation="vertical" flexItem sx={{ mx: 1, bgcolor: 'rgba(255,255,255,0.2)' }} />
-
-        {/* Grid Controls */}
-        <Box sx={{ display: 'flex', gap: 0.5 }}>
-          <Tooltip title="Toggle Grid">
-            <IconButton 
-              color={grid.gridVisible ? "secondary" : "inherit"}
-              onClick={() => setGridConfig({ gridVisible: !grid.gridVisible })}
-              size="small"
-            >
-              <GridIcon />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Toggle Snap to Grid">
-            <IconButton 
-              color={grid.snapEnabled ? "secondary" : "inherit"}
-              onClick={() => setGridConfig({ snapEnabled: !grid.snapEnabled })}
-              size="small"
-            >
-              <SnapIcon />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Center View">
-            <IconButton 
-              color="inherit"
-              onClick={centerView}
-              size="small"
-            >
-              <CenterIcon />
-            </IconButton>
-          </Tooltip>
-        </Box>
-
-        <Divider orientation="vertical" flexItem sx={{ mx: 1, bgcolor: 'rgba(255,255,255,0.2)' }} />
-
-        {/* Annotation Tools */}
-        <Box sx={{ display: 'flex', gap: 0.5 }}>
+        {/* Secondary Controls - Hidden on mobile, visible on tablet+ */}
+        <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 0.5 }}>
+          <Divider orientation="vertical" flexItem sx={{ mx: 1, bgcolor: 'rgba(255,255,255,0.2)' }} />
+          
+          {/* Annotation Tools */}
           <Tooltip title="Draw Line">
             <IconButton 
               color={annotationMode === 'line' ? "secondary" : "inherit"}
@@ -355,12 +423,10 @@ openUC2 team via GitHub repository
               <TextIcon />
             </IconButton>
           </Tooltip>
-        </Box>
 
-        <Divider orientation="vertical" flexItem sx={{ mx: 1, bgcolor: 'rgba(255,255,255,0.2)' }} />
+          <Divider orientation="vertical" flexItem sx={{ mx: 1, bgcolor: 'rgba(255,255,255,0.2)' }} />
 
-        {/* File Operations */}
-        <Box sx={{ display: 'flex', gap: 0.5 }}>
+          {/* File Operations */}
           <Tooltip title="Save Layout As...">
             <IconButton 
               color="inherit"
@@ -415,7 +481,7 @@ openUC2 team via GitHub repository
               <ScreenshotIcon />
             </IconButton>
           </Tooltip>
-          <Tooltip title="Export STL Files">
+          <Tooltip title="Download STL Bundle">
             <IconButton 
               color="inherit"
               onClick={handleExportSTL}
@@ -424,31 +490,30 @@ openUC2 team via GitHub repository
               <STLIcon />
             </IconButton>
           </Tooltip>
-          <Tooltip title="Clear All">
+          <Tooltip title="Save to GitHub">
             <IconButton 
               color="inherit"
-              onClick={handleClear}
-              size="small"
-              sx={{ color: 'warning.main' }}
-            >
-              <ClearIcon />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Save to GitHub Repository">
-            <IconButton 
-              color="inherit"
-              onClick={saveToGitHub}
+              onClick={handleSaveToGitHub}
               size="small"
             >
               <GitHubIcon />
             </IconButton>
           </Tooltip>
+          <Tooltip title="Clear All">
+            <IconButton 
+              color="inherit"
+              onClick={handleClear}
+              size="small"
+            >
+              <ClearIcon />
+            </IconButton>
+          </Tooltip>
         </Box>
+          </>
+        )}
 
-        <Divider orientation="vertical" flexItem sx={{ mx: 1, bgcolor: 'rgba(255,255,255,0.2)' }} />
-
-        {/* Help Section */}
-        <Box sx={{ display: 'flex', gap: 0.5 }}>
+        {/* Help Section - Minimal on mobile */}
+        <Box sx={{ display: { xs: 'none', sm: 'flex' }, gap: 0.5, ml: 'auto' }}>
           <Tooltip title="Help">
             <IconButton 
               color="inherit"
@@ -469,10 +534,10 @@ openUC2 team via GitHub repository
           </Tooltip>
         </Box>
 
-        {/* Title */}
-        <Box sx={{ flexGrow: 1, display: 'flex', justifyContent: 'center' }}>
+        {/* Title - Hidden on mobile to save space */}
+        <Box sx={{ flexGrow: 1, display: { xs: 'none', lg: 'flex' }, justifyContent: 'center' }}>
           <Typography variant="h5" component="h1" sx={{ fontWeight: 400 }}>
-            OptiKit - 2D Grid Builder
+            {isEditorPage ? 'OptiKit - 2D Grid Builder' : 'Setup Browser'}
           </Typography>
         </Box>
       </MuiToolbar>

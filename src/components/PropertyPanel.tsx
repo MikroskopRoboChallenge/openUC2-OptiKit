@@ -7,7 +7,15 @@ import {
   Button,
   TextField,
   Chip,
-  Paper
+  Paper,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions
 } from '@mui/material';
 import {
   RotateRight as RotateIcon,
@@ -15,7 +23,8 @@ import {
   Edit as EditIcon,
   Save as SaveIcon,
   Cancel as CancelIcon,
-  Settings as SettingsIcon
+  Settings as SettingsIcon,
+  Download as DownloadIcon
 } from '@mui/icons-material';
 import { useAppStore } from '../stores/appStore';
 
@@ -26,14 +35,46 @@ export const PropertyPanel: React.FC = () => {
     placedModules, 
     annotations, 
     modules,
+    setupMetadata,
     removeModule,
     removeAnnotation,
     rotateModule,
-    updateModuleCustomText
+    updateModuleCustomText,
+    updateSetupMetadata,
+    exportData
   } = useAppStore();
 
   const [isEditingText, setIsEditingText] = useState(false);
   const [editText, setEditText] = useState('');
+  const [metadataDialogOpen, setMetadataDialogOpen] = useState(false);
+
+  const categories = ['General', 'Microscopy', 'Astronomy', 'Spectroscopy', 'Imaging', 'Laser'];
+
+  const handleOpenMetadataDialog = () => {
+    setMetadataDialogOpen(true);
+  };
+
+  const handleCloseMetadataDialog = () => {
+    setMetadataDialogOpen(false);
+  };
+
+  const handleSaveMetadata = async () => {
+    // Export data already includes the setup metadata from the store
+    const currentSetup = await exportData();
+    
+    // Download as JSON file
+    const blob = new Blob([currentSetup], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${setupMetadata.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    handleCloseMetadataDialog();
+  };
 
   if (!selectedItemId || !selectedItemType) {
     return (
@@ -42,6 +83,91 @@ export const PropertyPanel: React.FC = () => {
           <SettingsIcon />
           Properties
         </Typography>
+        
+        <Card sx={{ mb: 2 }}>
+          <CardContent>
+            <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 600 }}>
+              Setup Metadata
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Enter metadata for your optical setup.
+            </Typography>
+            
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <TextField
+                label="Setup Name"
+                fullWidth
+                size="small"
+                value={setupMetadata.name}
+                onChange={(e) => updateSetupMetadata({ name: e.target.value })}
+              />
+              
+              <TextField
+                label="Author"
+                fullWidth
+                size="small"
+                value={setupMetadata.author}
+                onChange={(e) => updateSetupMetadata({ author: e.target.value })}
+                placeholder="Your name"
+              />
+              
+              <TextField
+                label="GitHub Account"
+                fullWidth
+                size="small"
+                value={setupMetadata.githubAccount}
+                onChange={(e) => updateSetupMetadata({ githubAccount: e.target.value })}
+                placeholder="github_username"
+              />
+              
+              <FormControl fullWidth size="small">
+                <InputLabel>Category</InputLabel>
+                <Select
+                  value={setupMetadata.category}
+                  label="Category"
+                  onChange={(e) => updateSetupMetadata({ category: e.target.value as any })}
+                >
+                  {categories.map((category) => (
+                    <MenuItem key={category} value={category}>
+                      {category}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              
+              <TextField
+                label="Description"
+                fullWidth
+                multiline
+                rows={3}
+                size="small"
+                value={setupMetadata.description}
+                onChange={(e) => updateSetupMetadata({ description: e.target.value })}
+                placeholder="Describe your optical setup..."
+              />
+              
+              <TextField
+                label="Screenshot URL"
+                fullWidth
+                size="small"
+                value={setupMetadata.screenshot}
+                onChange={(e) => updateSetupMetadata({ screenshot: e.target.value })}
+                placeholder="https://example.com/screenshot.png"
+              />
+              
+              <Button 
+                variant="contained" 
+                startIcon={<DownloadIcon />}
+                onClick={handleOpenMetadataDialog}
+                fullWidth
+                size="small"
+              >
+                Export Setup
+              </Button>
+            </Box>
+          </CardContent>
+        </Card>
+        
         <Paper 
           sx={{ 
             flex: 1, 
@@ -51,8 +177,8 @@ export const PropertyPanel: React.FC = () => {
             bgcolor: 'grey.50'
           }}
         >
-          <Typography variant="body2" color="textSecondary">
-            Select an item to view its properties
+          <Typography variant="body2" color="textSecondary" sx={{ textAlign: 'center' }}>
+            Select a component to view and edit its properties
           </Typography>
         </Paper>
       </Box>
@@ -288,6 +414,35 @@ export const PropertyPanel: React.FC = () => {
         {selectedItemType === 'module' && renderModuleProperties()}
         {selectedItemType === 'annotation' && renderAnnotationProperties()}
       </Box>
+
+      {/* Export Confirmation Dialog */}
+      <Dialog open={metadataDialogOpen} onClose={handleCloseMetadataDialog} maxWidth="sm" fullWidth>
+        <DialogTitle>Export Setup</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            This will export your current optical setup with the metadata you've entered above.
+          </Typography>
+          <Box sx={{ bgcolor: 'grey.50', p: 2, borderRadius: 1 }}>
+            <Typography variant="subtitle2" gutterBottom>Setup Details:</Typography>
+            <Typography variant="body2"><strong>Name:</strong> {setupMetadata.name}</Typography>
+            <Typography variant="body2"><strong>Author:</strong> {setupMetadata.author || 'Not specified'}</Typography>
+            <Typography variant="body2"><strong>Category:</strong> {setupMetadata.category}</Typography>
+            {setupMetadata.description && (
+              <Typography variant="body2"><strong>Description:</strong> {setupMetadata.description}</Typography>
+            )}
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseMetadataDialog}>Cancel</Button>
+          <Button 
+            onClick={handleSaveMetadata} 
+            variant="contained"
+            disabled={!setupMetadata.name.trim()}
+          >
+            Export Setup
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
