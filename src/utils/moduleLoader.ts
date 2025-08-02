@@ -40,19 +40,20 @@ function addConfiguratorPrefix(path: string | undefined): string | undefined {
 export function csvRowToModuleDefinition(row: ModuleCSVRow): ModuleDefinition {
   let defaultParams = {};
   try {
-    // Handle escaped quotes in CSV (replace "" with ")
-    const cleanedParams = row.defaultParams.replace(/""/g, '"');
+    // Handle escaped quotes in CSV - more robust handling
+    let cleanedParams = row.defaultParams;
+    
+    // Replace doubled quotes with single quotes
+    cleanedParams = cleanedParams.replace(/""/g, '"');
+    
+    // If the string starts and ends with quotes, remove them
+    if (cleanedParams.startsWith('"') && cleanedParams.endsWith('"')) {
+      cleanedParams = cleanedParams.slice(1, -1);
+    }
+    
     defaultParams = JSON.parse(cleanedParams);
   } catch {
     console.warn(`Invalid defaultParams for module ${row.id}:`, row.defaultParams);
-  }
-
-  // Add price to defaultParams if available
-  if (row.price) {
-    const price = parseFloat(row.price);
-    if (!isNaN(price)) {
-      (defaultParams as Record<string, unknown>).price = price;
-    }
   }
 
   return {
@@ -69,7 +70,8 @@ export function csvRowToModuleDefinition(row: ModuleCSVRow): ModuleDefinition {
     description: row.description,
     defaultParams,
     isWildCard: (defaultParams as { isWildCard?: boolean }).isWildCard || false,
-    autodeskInventor: row.autodeskInventor
+    autodeskInventor: row.autodeskInventor,
+    price: row.price ? parseFloat(row.price) : undefined
   };
 }
 
