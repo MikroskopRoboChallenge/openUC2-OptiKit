@@ -19,6 +19,7 @@ import { LayerPanel } from './LayerPanel';
 import { PropertyPanel } from './PropertyPanel';
 import { BOMPanel } from './BOMPanel';
 import { Toolbar } from './Toolbar';
+import { Tutorial } from './Tutorial';
 import { useAppStore } from '../stores/appStore';
 
 export const Layout: React.FC = () => {
@@ -116,6 +117,7 @@ export const Layout: React.FC = () => {
         {/* Canvas */}
         <Box 
           component="main"
+          data-tour="canvas"
           sx={{ 
             flexGrow: 1, 
             display: 'flex', 
@@ -153,9 +155,9 @@ export const Layout: React.FC = () => {
               variant="fullWidth"
               sx={{ borderBottom: 1, borderColor: 'divider' }}
             >
-              <Tab label="Layers" value="layers" />
-              <Tab label="Properties" value="properties" />
-              <Tab label="BOM" value="bom" />
+              <Tab label="Layers" value="layers" data-tour="layers-tab" />
+              <Tab label="Properties" value="properties" data-tour="properties-tab" />
+              <Tab label="BOM" value="bom" data-tour="bom-tab" />
             </Tabs>
             
             <Box sx={{ flex: 1, overflow: 'auto', p: 2 }}>
@@ -166,6 +168,9 @@ export const Layout: React.FC = () => {
           </Box>
         </Drawer>
       </Box>
+      
+      {/* Tutorial Component */}
+      <Tutorial />
     </Box>
   );
 };
