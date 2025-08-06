@@ -4,6 +4,7 @@ import { ThemeProvider } from '@mui/material/styles'
 import { CssBaseline } from '@mui/material'
 import { EditorPage } from './components/EditorPage'
 import { SetupBrowser } from './components/SetupBrowser'
+import { CollectionView } from './components/CollectionView'
 import { useAppStore } from './stores/appStore'
 import { materialTheme } from './theme/materialTheme'
 import './styles/brand.css'
@@ -71,6 +72,7 @@ function App() {
         <Routes>
           <Route path="/" element={<EditorPage />} />
           <Route path="/setups" element={<SetupBrowser />} />
+          <Route path="/:collectionName" element={<CollectionView />} />
         </Routes>
       </Router>
     </ThemeProvider>
