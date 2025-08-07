@@ -13,7 +13,6 @@ import {
 import {
   Undo as UndoIcon,
   Redo as RedoIcon,
-  GridOn as GridIcon,
   CropFree as SnapIcon,
   CenterFocusStrong as CenterIcon,
   Timeline as LineIcon,
@@ -190,7 +189,6 @@ EXPORT/IMPORT:
 • Screenshot: Download PNG image of assembly
 
 SHORTCUTS:
-• Grid toggle: Show/hide grid lines
 • Snap toggle: Enable/disable snap-to-grid
 • Undo/Redo: Navigate through changes
 
@@ -379,15 +377,6 @@ openUC2 team via GitHub repository
 
           {/* Grid Controls - Hidden on small mobile */}
           <Box sx={{ display: { xs: 'none', sm: 'flex' }, gap: 0.5 }}>
-            <Tooltip title="Toggle Grid">
-              <IconButton 
-                color={grid.gridVisible ? "secondary" : "inherit"}
-                onClick={() => setGridConfig({ gridVisible: !grid.gridVisible })}
-                size="small"
-              >
-                <GridIcon />
-              </IconButton>
-            </Tooltip>
             <Tooltip title="Toggle Snap to Grid">
               <IconButton 
                 color={grid.snapEnabled ? "secondary" : "inherit"}
