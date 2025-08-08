@@ -247,6 +247,20 @@ Best regards`;
                   Send to Mail
                 </Button>
               </Box>
+              
+              {/* Purchase Information */}
+              <Box sx={{ mt: 3, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
+                <Typography variant="body2" color="textSecondary" gutterBottom>
+                  <strong>Purchase Information:</strong>
+                </Typography>
+                <Typography variant="body2" color="textSecondary" gutterBottom>
+                  You can directly buy these components by sharing your setup via the shareable link 
+                  or by saving your configuration and sharing it with <strong>sales@openuc2.com</strong>.
+                </Typography>
+                <Typography variant="body2" color="textSecondary" sx={{ fontStyle: 'italic' }}>
+                  Note: Final prices may vary. You can get a customized quotation based on your drawings and requirements.
+                </Typography>
+              </Box>
             </CardContent>
           </Card>
           

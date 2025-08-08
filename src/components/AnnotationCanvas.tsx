@@ -20,7 +20,8 @@ export const AnnotationCanvas: React.FC<AnnotationCanvasProps> = ({
     moveAnnotation,
     selectItem, 
     selectedItemId,
-    setAnnotationMode 
+    setAnnotationMode,
+    layers
   } = useAppStore();
   
   const [isDrawing, setIsDrawing] = useState(false);
@@ -114,7 +115,10 @@ export const AnnotationCanvas: React.FC<AnnotationCanvasProps> = ({
   };
 
   const renderAnnotations = () => {
-    const layerAnnotations = annotations.filter(ann => ann.layer === currentLayerIndex);
+    const layerAnnotations = annotations.filter(ann => {
+      const annotationLayer = layers.find(layer => layer.index === ann.layer);
+      return annotationLayer && annotationLayer.visible;
+    });
     
     return layerAnnotations.map(annotation => {
       const isSelected = selectedItemId === annotation.id;

@@ -13,7 +13,6 @@ import {
 import {
   Undo as UndoIcon,
   Redo as RedoIcon,
-  CropFree as SnapIcon,
   CenterFocusStrong as CenterIcon,
   Timeline as LineIcon,
   ArrowForward as ArrowIcon,
@@ -32,7 +31,8 @@ import {
   Clear as ClearIcon,
   Link as LinkIcon,
   Dashboard as SetupIcon,
-  Edit as EditorIcon
+  Edit as EditorIcon,
+  Forum as ForumIcon
 } from '@mui/icons-material';
 import { useAppStore } from '../stores/appStore';
 import { FeedbackDialog } from './FeedbackDialog';
@@ -46,8 +46,6 @@ export const Toolbar: React.FC = () => {
   const [feedbackTrigger, setFeedbackTrigger] = React.useState<'download' | 'github' | 'manual'>('manual');
   
   const { 
-    grid, 
-    setGridConfig, 
     exportData, 
     saveToGitHub,
     generateShareableLink,
@@ -226,6 +224,10 @@ openUC2 team via GitHub repository
     alert(privacyContent);
   };
 
+  const handleForum = () => {
+    window.open('https://openuc2.discourse.group', '_blank');
+  };
+
   const handleImport = () => {
     const input = document.createElement('input');
     input.type = 'file';
@@ -377,15 +379,6 @@ openUC2 team via GitHub repository
 
           {/* Grid Controls - Hidden on small mobile */}
           <Box sx={{ display: { xs: 'none', sm: 'flex' }, gap: 0.5 }}>
-            <Tooltip title="Toggle Snap to Grid">
-              <IconButton 
-                color={grid.snapEnabled ? "secondary" : "inherit"}
-                onClick={() => setGridConfig({ snapEnabled: !grid.snapEnabled })}
-                size="small"
-              >
-                <SnapIcon />
-              </IconButton>
-            </Tooltip>
             <Tooltip title="Center View">
               <IconButton 
                 color="inherit"
@@ -534,6 +527,15 @@ openUC2 team via GitHub repository
 
         {/* Help Section - Minimal on mobile */}
         <Box sx={{ display: { xs: 'none', sm: 'flex' }, gap: 0.5, ml: 'auto' }}>
+          <Tooltip title="Forum Support">
+            <IconButton 
+              color="inherit"
+              onClick={handleForum}
+              size="small"
+            >
+              <ForumIcon />
+            </IconButton>
+          </Tooltip>
           <Tooltip title="Help">
             <IconButton 
               color="inherit"

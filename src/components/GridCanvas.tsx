@@ -342,7 +342,10 @@ export const GridCanvas: React.FC = () => {
   // Render placed modules
   const renderPlacedModules = () => {
     return placedModules
-      .filter(module => module.layer === currentLayerIndex)
+      .filter(module => {
+        const moduleLayer = layers.find(layer => layer.index === module.layer);
+        return moduleLayer && moduleLayer.visible;
+      })
       .map(module => {
         const moduleDefinition = modules.find(m => m.id === module.moduleId);
         if (!moduleDefinition) return null;

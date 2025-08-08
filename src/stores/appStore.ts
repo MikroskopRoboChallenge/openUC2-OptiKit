@@ -48,6 +48,8 @@ interface AppStore extends AppState {
   addLayer: (name: string) => void;
   removeLayer: (layerId: string) => void;
   setActiveLayer: (layerId: string) => void;
+  toggleLayerVisibility: (layerId: string, visible?: boolean) => void;
+  setAllLayersVisibility: (visible: boolean) => void;
   placeModule: (moduleId: string, position: Point, layer: number) => void;
   moveModule: (moduleId: string, position: Point) => void;
   rotateModule: (moduleId: string, rotation: number) => void;
@@ -160,6 +162,22 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
   setActiveLayer: (layerId: string) => {
     set({ activeLayerId: layerId });
+  },
+
+  toggleLayerVisibility: (layerId: string, visible?: boolean) => {
+    set(state => ({
+      layers: state.layers.map(layer =>
+        layer.id === layerId
+          ? { ...layer, visible: visible !== undefined ? visible : !layer.visible }
+          : layer
+      )
+    }));
+  },
+
+  setAllLayersVisibility: (visible: boolean) => {
+    set(state => ({
+      layers: state.layers.map(layer => ({ ...layer, visible }))
+    }));
   },
 
   placeModule: (moduleId: string, position: Point, layer: number) => {

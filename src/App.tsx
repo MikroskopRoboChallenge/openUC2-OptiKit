@@ -12,8 +12,53 @@ import './styles/brand.css'
 import './App.css'
 
 function App() {
-  const { loadModules, loadStateFromStorage, saveStateToStorage, importFromUrl, importData } = useAppStore();
+  const { loadModules, loadStateFromStorage, saveStateToStorage, importFromUrl, importData, undo, redo } = useAppStore();
   const [showStartupDialog, setShowStartupDialog] = useState(false);
+
+  useEffect(() => {
+    // Browser history integration for undo/redo
+    let historyPosition = 0;
+    
+    const handleHistoryChange = () => {
+      const currentPosition = history.state?.position || 0;
+      
+      if (currentPosition < historyPosition) {
+        // User went back in browser history - trigger undo
+        undo();
+      } else if (currentPosition > historyPosition) {
+        // User went forward in browser history - trigger redo
+        redo();
+      }
+      
+      historyPosition = currentPosition;
+    };
+
+    window.addEventListener('popstate', handleHistoryChange);
+    
+    // Push initial state to browser history
+    if (!history.state) {
+      history.replaceState({ position: 0 }, '', window.location.href);
+    }
+
+    return () => {
+      window.removeEventListener('popstate', handleHistoryChange);
+    };
+  }, [undo, redo]);
+
+  useEffect(() => {
+    // Subscribe to app state changes to sync with browser history
+    const unsubscribe = useAppStore.subscribe((state) => {
+      // Only push to browser history when internal history changes
+      if (state.historyIndex > 0) {
+        const newPosition = state.historyIndex;
+        if (history.state?.position !== newPosition) {
+          history.pushState({ position: newPosition }, '', window.location.href);
+        }
+      }
+    });
+
+    return unsubscribe;
+  }, []);
 
   useEffect(() => {
     // Load modules and state on app start
