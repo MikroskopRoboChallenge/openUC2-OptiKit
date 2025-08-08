@@ -32,7 +32,9 @@ import {
   Link as LinkIcon,
   Dashboard as SetupIcon,
   Edit as EditorIcon,
-  Forum as ForumIcon
+  Forum as ForumIcon,
+  SelectAll as SelectIcon,
+  Delete as DeleteIcon
 } from '@mui/icons-material';
 import { useAppStore } from '../stores/appStore';
 import { FeedbackDialog } from './FeedbackDialog';
@@ -58,7 +60,11 @@ export const Toolbar: React.FC = () => {
     annotationMode,
     setAnnotationMode,
     downloadScreenshot,
-    clearAll
+    clearAll,
+    selectionMode,
+    setSelectionMode,
+    deleteSelectedItems,
+    selectedItems
   } = useAppStore();
 
   const handleExport = async () => {
@@ -379,6 +385,15 @@ openUC2 team via GitHub repository
 
           {/* Grid Controls - Hidden on small mobile */}
           <Box sx={{ display: { xs: 'none', sm: 'flex' }, gap: 0.5 }}>
+            <Tooltip title={`Selection Mode: ${selectionMode === 'single' ? 'Single' : 'Multiple'}`}>
+              <IconButton 
+                color={selectionMode === 'multiple' ? "secondary" : "inherit"}
+                onClick={() => setSelectionMode(selectionMode === 'single' ? 'multiple' : 'single')}
+                size="small"
+              >
+                <SelectIcon />
+              </IconButton>
+            </Tooltip>
             <Tooltip title="Center View">
               <IconButton 
                 color="inherit"
@@ -388,6 +403,17 @@ openUC2 team via GitHub repository
                 <CenterIcon />
               </IconButton>
             </Tooltip>
+            {selectedItems.length > 1 && (
+              <Tooltip title={`Delete ${selectedItems.length} selected items`}>
+                <IconButton 
+                  color="error"
+                  onClick={deleteSelectedItems}
+                  size="small"
+                >
+                  <DeleteIcon />
+                </IconButton>
+              </Tooltip>
+            )}
           </Box>
         </Box>
 

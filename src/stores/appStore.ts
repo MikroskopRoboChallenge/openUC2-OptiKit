@@ -60,6 +60,11 @@ interface AppStore extends AppState {
   moveAnnotation: (annotationId: string, position: Point) => void;
   removeAnnotation: (annotationId: string) => void;
   selectItem: (itemId: string | null, itemType: 'module' | 'annotation' | null) => void;
+  addToSelection: (itemId: string, itemType: 'module' | 'annotation') => void;
+  removeFromSelection: (itemId: string) => void;
+  clearSelection: () => void;
+  setSelectionMode: (mode: 'single' | 'multiple') => void;
+  deleteSelectedItems: () => void;
   setGridConfig: (config: Partial<AppState['grid']>) => void;
   setViewport: (config: Partial<AppState['viewport']>) => void;
   setAnnotationMode: (mode: AppState['annotationMode']) => void;
@@ -98,6 +103,8 @@ export const useAppStore = create<AppStore>((set, get) => ({
   activeLayerId: 'layer-0',
   selectedItemId: null,
   selectedItemType: null,
+  selectedItems: [],
+  selectionMode: 'single',
   grid: {
     cellSize: GRID_CELL_SIZE,
     gridVisible: true,
@@ -192,7 +199,10 @@ export const useAppStore = create<AppStore>((set, get) => ({
       placedModules: state.placedModules,
       annotations: state.annotations,
       layers: state.layers,
-      activeLayerId: state.activeLayerId
+      activeLayerId: state.activeLayerId,
+      selectedItems: state.selectedItems,
+      selectedItemId: state.selectedItemId,
+      selectedItemType: state.selectedItemType
     });
 
     const newModule: PlacedModule = {
@@ -228,7 +238,10 @@ export const useAppStore = create<AppStore>((set, get) => ({
       placedModules: state.placedModules,
       annotations: state.annotations,
       layers: state.layers,
-      activeLayerId: state.activeLayerId
+      activeLayerId: state.activeLayerId,
+      selectedItems: state.selectedItems,
+      selectedItemId: state.selectedItemId,
+      selectedItemType: state.selectedItemType
     });
 
     set(state => ({
@@ -261,7 +274,10 @@ export const useAppStore = create<AppStore>((set, get) => ({
       placedModules: state.placedModules,
       annotations: state.annotations,
       layers: state.layers,
-      activeLayerId: state.activeLayerId
+      activeLayerId: state.activeLayerId,
+      selectedItems: state.selectedItems,
+      selectedItemId: state.selectedItemId,
+      selectedItemType: state.selectedItemType
     });
 
     set(state => ({
@@ -294,7 +310,10 @@ export const useAppStore = create<AppStore>((set, get) => ({
       placedModules: state.placedModules,
       annotations: state.annotations,
       layers: state.layers,
-      activeLayerId: state.activeLayerId
+      activeLayerId: state.activeLayerId,
+      selectedItems: state.selectedItems,
+      selectedItemId: state.selectedItemId,
+      selectedItemType: state.selectedItemType
     });
 
     const newAnnotation: Annotation = {
@@ -327,7 +346,10 @@ export const useAppStore = create<AppStore>((set, get) => ({
       placedModules: state.placedModules,
       annotations: state.annotations,
       layers: state.layers,
-      activeLayerId: state.activeLayerId
+      activeLayerId: state.activeLayerId,
+      selectedItems: state.selectedItems,
+      selectedItemId: state.selectedItemId,
+      selectedItemType: state.selectedItemType
     });
 
     set(state => ({
@@ -337,7 +359,85 @@ export const useAppStore = create<AppStore>((set, get) => ({
   },
 
   selectItem: (itemId: string | null, itemType: 'module' | 'annotation' | null) => {
-    set({ selectedItemId: itemId, selectedItemType: itemType });
+    const state = get();
+    if (state.selectionMode === 'multiple' && itemId && itemType) {
+      // In multiple selection mode, toggle the item
+      const isSelected = state.selectedItems.some(item => item.id === itemId);
+      if (isSelected) {
+        get().removeFromSelection(itemId);
+      } else {
+        get().addToSelection(itemId, itemType);
+      }
+    } else {
+      // Single selection mode
+      set({ 
+        selectedItemId: itemId, 
+        selectedItemType: itemType,
+        selectedItems: itemId && itemType ? [{ id: itemId, type: itemType }] : []
+      });
+    }
+  },
+
+  addToSelection: (itemId: string, itemType: 'module' | 'annotation') => {
+    set(state => {
+      const isAlreadySelected = state.selectedItems.some(item => item.id === itemId);
+      if (!isAlreadySelected) {
+        return {
+          selectedItems: [...state.selectedItems, { id: itemId, type: itemType }],
+          selectedItemId: itemId,
+          selectedItemType: itemType
+        };
+      }
+      return state;
+    });
+  },
+
+  removeFromSelection: (itemId: string) => {
+    set(state => {
+      const updatedSelection = state.selectedItems.filter(item => item.id !== itemId);
+      const lastSelected = updatedSelection[updatedSelection.length - 1];
+      return {
+        selectedItems: updatedSelection,
+        selectedItemId: lastSelected?.id || null,
+        selectedItemType: lastSelected?.type || null
+      };
+    });
+  },
+
+  clearSelection: () => {
+    set({
+      selectedItems: [],
+      selectedItemId: null,
+      selectedItemType: null
+    });
+  },
+
+  setSelectionMode: (mode: 'single' | 'multiple') => {
+    set(state => {
+      if (mode === 'single' && state.selectedItems.length > 1) {
+        // When switching to single mode, keep only the first selected item
+        const firstItem = state.selectedItems[0];
+        return {
+          selectionMode: mode,
+          selectedItems: firstItem ? [firstItem] : [],
+          selectedItemId: firstItem?.id || null,
+          selectedItemType: firstItem?.type || null
+        };
+      }
+      return { selectionMode: mode };
+    });
+  },
+
+  deleteSelectedItems: () => {
+    const state = get();
+    state.selectedItems.forEach(item => {
+      if (item.type === 'module') {
+        get().removeModule(item.id);
+      } else if (item.type === 'annotation') {
+        get().removeAnnotation(item.id);
+      }
+    });
+    get().clearSelection();
   },
 
   setGridConfig: (config: Partial<AppState['grid']>) => {
@@ -665,8 +765,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
         ...previousSnapshot,
         historyIndex: state.historyIndex - 1,
         history: state.history, // Keep the history
-        selectedItemId: null,
-        selectedItemType: null
+        selectionMode: state.selectionMode // Keep current selection mode
       });
     }
   },
@@ -679,8 +778,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
         ...nextSnapshot,
         historyIndex: state.historyIndex + 1,
         history: state.history, // Keep the history
-        selectedItemId: null,
-        selectedItemType: null
+        selectionMode: state.selectionMode // Keep current selection mode
       });
     }
   },
@@ -973,7 +1071,10 @@ export const useAppStore = create<AppStore>((set, get) => ({
       placedModules: state.placedModules,
       annotations: state.annotations,
       layers: state.layers,
-      activeLayerId: state.activeLayerId
+      activeLayerId: state.activeLayerId,
+      selectedItems: state.selectedItems,
+      selectedItemId: state.selectedItemId,
+      selectedItemType: state.selectedItemType
     });
     
     set({

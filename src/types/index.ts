@@ -74,6 +74,9 @@ export interface StateSnapshot {
   annotations: Annotation[];
   layers: Layer[];
   activeLayerId: string;
+  selectedItems: SelectedItem[];
+  selectedItemId: string | null;
+  selectedItemType: 'module' | 'annotation' | null;
 }
 
 // Setup metadata interface
@@ -97,6 +100,11 @@ export interface FeedbackData {
   url: string;
 }
 
+export interface SelectedItem {
+  id: string;
+  type: 'module' | 'annotation';
+}
+
 export interface AppState {
   modules: ModuleDefinition[];
   placedModules: PlacedModule[];
@@ -105,6 +113,8 @@ export interface AppState {
   activeLayerId: string;
   selectedItemId: string | null;
   selectedItemType: 'module' | 'annotation' | null;
+  selectedItems: SelectedItem[]; // For multiple selection
+  selectionMode: 'single' | 'multiple';
   grid: GridConfig;
   viewport: ViewportConfig;
   history: StateSnapshot[]; // Command history for undo/redo
