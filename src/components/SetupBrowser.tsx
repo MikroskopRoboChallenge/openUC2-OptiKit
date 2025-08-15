@@ -48,7 +48,7 @@ interface SetupAnalysisData {
   filename: string;
   name: string;
   uc2_verified: boolean;
-  collection: string;
+  collection: string | string[]; // Support both single and multiple collections
   author: string;
   github_link: string;
   description: string;
@@ -56,7 +56,8 @@ interface SetupAnalysisData {
   version: string;
   createdAt: string;
   total_components: number;
-  [key: string]: string | number | boolean; // For component columns
+  notification?: string; // For safety warnings, module requirements, etc.
+  [key: string]: string | number | boolean | string[] | undefined; // For component columns
 }
 
 export const SetupBrowser: React.FC = () => {
@@ -138,13 +139,33 @@ export const SetupBrowser: React.FC = () => {
         const csvText = await response.text();
         const analysisData = parseSetupAnalysisCsv(csvText);
         
-        // Group setups by collection
+        // Group setups by collection (supporting multiple collections per setup)
         const collectionGroups = analysisData.reduce((acc, setup) => {
-          const collection = setup.collection || 'General';
-          if (!acc[collection]) {
-            acc[collection] = [];
+          // Handle both single string and array formats for collections
+          let collections: string[];
+          if (Array.isArray(setup.collection)) {
+            collections = setup.collection;
+          } else if (typeof setup.collection === 'string') {
+            // Check if it's a JSON array string or comma-separated values
+            try {
+              const parsed = JSON.parse(setup.collection);
+              collections = Array.isArray(parsed) ? parsed : [setup.collection];
+            } catch {
+              // Handle comma-separated values
+              collections = setup.collection.split(',').map(c => c.trim());
+            }
+          } else {
+            collections = ['General'];
           }
-          acc[collection].push(setup);
+          
+          // Add setup to each collection it belongs to
+          collections.forEach(collection => {
+            if (!acc[collection]) {
+              acc[collection] = [];
+            }
+            acc[collection].push(setup);
+          });
+          
           return acc;
         }, {} as Record<string, SetupAnalysisData[]>);
         

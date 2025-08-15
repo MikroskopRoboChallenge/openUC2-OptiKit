@@ -15,7 +15,8 @@ import type {
   CompactModule,
   CompactAnnotation,
   SetupMetadata,
-  FeedbackData
+  FeedbackData,
+  Notification
 } from '../types';
 
 const GRID_CELL_SIZE = 50; // 50mm in pixels (assuming 1:1 scale)
@@ -91,6 +92,10 @@ interface AppStore extends AppState {
   setStartupDialogClosed: (closed: boolean) => void;
   // Feedback actions
   submitFeedback: (feedback: FeedbackData) => Promise<void>;
+  // Notification actions
+  addNotification: (notification: Omit<Notification, 'id' | 'timestamp'>) => void;
+  removeNotification: (id: string) => void;
+  clearNotifications: () => void;
 }
 
 export const useAppStore = create<AppStore>((set, get) => ({
@@ -129,11 +134,12 @@ export const useAppStore = create<AppStore>((set, get) => ({
     uc2_verified: false,
     version: '1.0.0',
     createdAt: new Date().toISOString(),
-    collection: 'General',
+    collection: ['General'], // Support multiple collections as array
     notification: ''
   },
   tutorialCompleted: false,
   startupDialogClosed: false,
+  notifications: [],
 
   // Actions
   loadModules: async () => {
@@ -613,12 +619,15 @@ export const useAppStore = create<AppStore>((set, get) => ({
             })) 
           : [];
         
+        // Extract metadata for collection and notification handling  
+        const importedMetadata = (compactData as CompactExport & { meta?: any }).meta;
+        
         set({
           placedModules,
           annotations,
           layers: [{ id: 'layer-0', name: 'Layer 0', index: 0, visible: true }],
           // Import metadata if available
-          setupMetadata: (compactData as CompactExport & { meta?: any }).meta || {
+          setupMetadata: importedMetadata || {
             name: 'Imported Setup',
             author: '',
             githubAccount: '',
@@ -628,10 +637,21 @@ export const useAppStore = create<AppStore>((set, get) => ({
             uc2_verified: false,
             version: '1.0.0',
             createdAt: new Date().toISOString(),
-            collection: 'General',
+            collection: importedMetadata?.collection || ['General'],
             notification: ''
           }
         });
+        
+        // Check for notification in imported setup metadata
+        if (importedMetadata?.notification && importedMetadata.notification.trim()) {
+          get().addNotification({
+            type: 'warning',
+            title: 'Setup Notice',
+            message: importedMetadata.notification,
+            duration: 8000 // Show for 8 seconds
+          });
+        }
+        
         return;
       }
       
@@ -662,10 +682,22 @@ export const useAppStore = create<AppStore>((set, get) => ({
             uc2_verified: parsed.uc2_verified || false,
             version: parsed.version || '1.0.0',
             createdAt: parsed.createdAt || new Date().toISOString(),
-            collection: parsed.collection || 'General',
+            collection: parsed.collection || ['General'],
             notification: parsed.notification || ''
           },
         });
+        
+        // Check for notification in imported setup metadata
+        const importedMetadata = parsed.setupMetadata || parsed.meta;
+        const notificationMessage = importedMetadata?.notification || parsed.notification;
+        if (notificationMessage && notificationMessage.trim()) {
+          get().addNotification({
+            type: 'warning',
+            title: 'Setup Notice',
+            message: notificationMessage,
+            duration: 8000
+          });
+        }
       } else {
         // Legacy format support
         set({
@@ -681,11 +713,22 @@ export const useAppStore = create<AppStore>((set, get) => ({
             uc2_verified: parsed.uc2_verified || false,
             version: parsed.version || '1.0.0',
             createdAt: parsed.createdAt || new Date().toISOString(),
-            collection: parsed.collection || 'General',
+            collection: parsed.collection || ['General'],
             notification: parsed.notification || ''
           },
           layers: parsed.layers || [{ id: 'layer-0', name: 'Layer 0', index: 0, visible: true }],
         });
+        
+        // Check for notification in legacy format
+        const notificationMessage = parsed.setupMetadata?.notification || parsed.notification;
+        if (notificationMessage && notificationMessage.trim()) {
+          get().addNotification({
+            type: 'warning',
+            title: 'Setup Notice',
+            message: notificationMessage,
+            duration: 8000
+          });
+        }
       }
     } catch (error) {
       console.error('Failed to import data:', error);
@@ -1198,5 +1241,38 @@ ${feedback.email ? `Email: ${feedback.email}` : 'No contact provided'}
       // In a production app, you might want to fall back to a different service
       throw error;
     }
+  },
+
+  // Notification actions
+  addNotification: (notification: Omit<Notification, 'id' | 'timestamp'>) => {
+    set((state) => {
+      const newNotification: Notification = {
+        ...notification,
+        id: uuidv4(),
+        timestamp: Date.now()
+      };
+      
+      return {
+        notifications: [...state.notifications, newNotification]
+      };
+    });
+    
+    // Auto-remove notification after duration if specified
+    if (notification.duration && notification.duration > 0) {
+      const notificationId = get().notifications[get().notifications.length - 1].id;
+      setTimeout(() => {
+        get().removeNotification(notificationId);
+      }, notification.duration);
+    }
+  },
+
+  removeNotification: (id: string) => {
+    set((state) => ({
+      notifications: state.notifications.filter(n => n.id !== id)
+    }));
+  },
+
+  clearNotifications: () => {
+    set({ notifications: [] });
   }
 }));

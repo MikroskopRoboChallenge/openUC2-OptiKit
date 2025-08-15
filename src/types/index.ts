@@ -106,6 +106,15 @@ export interface FeedbackData {
   url: string;
 }
 
+export interface Notification {
+  id: string;
+  type: 'info' | 'warning' | 'error' | 'success';
+  title: string;
+  message: string;
+  duration?: number; // in milliseconds, 0 for persistent
+  timestamp: number;
+}
+
 export interface SelectedItem {
   id: string;
   type: 'module' | 'annotation';
@@ -129,6 +138,7 @@ export interface AppState {
   setupMetadata: SetupMetadata;
   // UI state
   activeRightTab: 'layers' | 'properties' | 'bom';
+  notifications: Notification[];
   // Tutorial state
   tutorialCompleted: boolean;
   startupDialogClosed: boolean;

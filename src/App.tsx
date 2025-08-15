@@ -6,6 +6,7 @@ import { EditorPage } from './components/EditorPage'
 import { SetupBrowser } from './components/SetupBrowser'
 import { CollectionView } from './components/CollectionView'
 import { StartupDialog } from './components/StartupDialog'
+import { NotificationDisplay } from './components/NotificationDisplay'
 import { useAppStore } from './stores/appStore'
 import { materialTheme } from './theme/materialTheme'
 import './styles/brand.css'
@@ -149,6 +150,9 @@ function App() {
           open={showStartupDialog}
           onClose={handleCloseStartupDialog}
         />
+        
+        {/* Notification Display */}
+        <NotificationDisplay />
       </Router>
     </ThemeProvider>
   )
