@@ -1,49 +1,66 @@
-name: Build and Deploy
+name: Build and Deploy to Configurator
 
 on:
   push:
     branches: [ main ]
+  pull_request:
+    branches: [ main ]
   
 jobs:
-  build-and-deploy:
+  # Test and build job for all events
+  build:
     runs-on: ubuntu-latest
-
+    
     steps:
     - name: Checkout Repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
 
     - name: Install dependencies
-      run: npm install --legacy-peer-deps
+      run: npm ci
 
-    - name: Increase Node.js memory limit and build
+    - name: Lint code
+      run: npm run lint
+
+    - name: Build project
       run: |
         export NODE_OPTIONS=--max_old_space_size=4096
         CI=false npm run build
+    
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-files
+        path: dist/
+
+  # Deploy job - only runs on push to main
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+    - name: Download build artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: build-files
+        path: dist/
       
-    - name: Push to the youseetoo Repository for displaying at https://youseetoo.github.io/imswitch/index.html
+    - name: Deploy to youseetoo.github.io/configurator
       uses: cpina/github-action-push-to-another-repository@main
       env:
         API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB_YOUSEETOO }}
       with:
-        source-directory: 'build'
+        source-directory: 'dist'
         destination-github-username: 'youseetoo'
         destination-repository-name: 'youseetoo.github.io'
-        target-directory: 'imswitch'
+        target-directory: 'configurator'
         user-email: 'bene.d@gmx.de'
         target-branch: 'main'
-        commit-message: 'Deploy React app build'
-        destination-directory: 'imswitch'
-    - name: Push to the imswitch repo for later use via fastapi
-      uses: cpina/github-action-push-to-another-repository@main
-      env:
-        API_TOKEN_GITHUB: ${{ secrets.OPENUC2_IMSWITCH }}
-      with:
-        source-directory: 'build'
-        destination-github-username: 'openUC2'
-        destination-repository-name: 'ImSwitch'
-        target-directory: 'imswitch/_data/static/imswitch'
-        user-email: 'bene.d@gmx.de'
-        target-branch: 'master'
-        commit-message: 'Deploy React app build'
-        destination-directory: 'imswitch'
+        commit-message: 'Deploy OptiKit configurator build from ${{ github.sha }}'
                 
