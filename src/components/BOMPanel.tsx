@@ -30,7 +30,8 @@ import {
   Inventory as InventoryIcon,
   Delete as DeleteIcon,
   ShoppingCart as ShoppingCartIcon,
-  Email as EmailIcon
+  Email as EmailIcon,
+  Download as DownloadIcon
 } from '@mui/icons-material';
 import { useAppStore } from '../stores/appStore';
 import type { ModuleDefinition } from '../types';
@@ -163,70 +164,6 @@ export const BOMPanel: React.FC = () => {
     try {
       // Get current setup data
       const setupData = await exportData();
-      const setup = JSON.parse(setupData);
-      
-      // Add purchase request metadata
-      const purchaseRequest = {
-        ...setup,
-        purchaseRequest: {
-          customerInfo: {
-            name: customerName.trim(),
-            email: customerEmail.trim()
-          },
-          totalItems: bomItems.reduce((sum, item) => sum + item.count, 0),
-          uniqueModules: bomItems.length,
-          estimatedCost: totalCost,
-          bom: bomItems.map(item => ({
-            moduleId: item.module.id,
-            name: item.module.name,
-            quantity: item.count,
-            unitPrice: item.module.price || 0,
-            totalPrice: item.totalPrice
-          })),
-          timestamp: new Date().toISOString()
-        }
-      };
-      
-      // Save to GitHub repository under quotations folder
-      const timestamp = Date.now();
-      const filename = `quotation-${timestamp}.json`;
-      const path = `quotations/${filename}`;
-      
-      // Hardcoded repository configuration
-      const owner = 'beniroquai';
-      const repo = 'openUC2-OptiKit-Store';
-      const branch = 'main';
-      
-      // Construct the complete token
-      const tokenPrefix = 'github_pat_11ABBE5OA0xugcH1RMlAfO_8Gr1EuOvgqJcF12IShT1QeQB3qg5';
-      const tokenSuffix = 'zYbA7QOwnfGrPVAI2U2C7TDn4Lp9jeH';
-      const token = tokenPrefix + tokenSuffix;
-      
-      // Initialize Octokit with the provided token
-      const { Octokit } = await import('@octokit/rest');
-      const octokit = new Octokit({
-        auth: token.trim()
-      });
-      
-      // Encode content as base64
-      const jsonString = JSON.stringify(purchaseRequest, null, 2);
-      const content = btoa(unescape(encodeURIComponent(jsonString)));
-      
-      // Create commit message
-      const message = `Add quotation request from ${customerName}: ${bomItems.reduce((sum, item) => sum + item.count, 0)} components ($${totalCost.toFixed(2)})`;
-      
-      // Save to GitHub repository
-      await octokit.request("PUT /repos/{owner}/{repo}/contents/{path}", {
-        owner,
-        repo,
-        path,
-        message,
-        content,
-        branch
-      });
-      
-      const fileUrl = `https://github.com/${owner}/${repo}/blob/${branch}/${path}`;
-      const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${path}`;
       
       // Create email with quotation details
       const subject = 'UC2 Configuration - Purchase Request';
@@ -246,8 +183,8 @@ Setup Details:
 Bill of Materials:
 ${bomItems.map(item => `${item.module.name} (${item.count}x) - $${item.totalPrice.toFixed(2)}`).join('\n')}
 
-Configuration File: ${fileUrl}
-Raw Data URL: ${rawUrl}
+Configuration Data (JSON format):
+${setupData}
 
 Please provide me with:
 - Final pricing and availability
@@ -270,7 +207,7 @@ ${customerName}`;
       setEmailError(false);
       setBuyDialogOpen(false);
       
-      setSnackbarMessage('Quotation saved to GitHub and email client opened!');
+      setSnackbarMessage('Email client opened with quotation request!');
       setSnackbarSeverity('success');
       setSnackbarOpen(true);
       
@@ -315,6 +252,60 @@ Best regards`;
     } catch (error) {
       console.error('Error sending email:', error);
       setSnackbarMessage('Failed to open email client. Please try again.');
+      setSnackbarSeverity('error');
+      setSnackbarOpen(true);
+    }
+  };
+
+  const handleExportBOM = () => {
+    try {
+      // Create CSV header
+      const headers = ['Module Name', 'Module ID', 'Quantity', 'Unit Price ($)', 'Total Price ($)', 'Type'];
+      
+      // Create CSV rows
+      const rows = bomItems.map(item => [
+        `"${item.module.name}"`,
+        `"${item.module.id}"`,
+        item.count.toString(),
+        (item.module.price || 0).toFixed(2),
+        item.totalPrice.toFixed(2),
+        item.moduleIds.length === 0 ? 'Auto-calculated' : 'Placed'
+      ]);
+      
+      // Add summary row
+      rows.push([
+        'TOTAL',
+        '',
+        bomItems.reduce((sum, item) => sum + item.count, 0).toString(),
+        '',
+        totalCost.toFixed(2),
+        `${bomItems.length} unique modules`
+      ]);
+      
+      // Combine headers and rows
+      const csvContent = [headers, ...rows]
+        .map(row => row.join(','))
+        .join('\n');
+      
+      // Create and download file
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      
+      link.setAttribute('href', url);
+      link.setAttribute('download', `UC2_BOM_${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      setSnackbarMessage('BOM exported as CSV successfully!');
+      setSnackbarSeverity('success');
+      setSnackbarOpen(true);
+    } catch (error) {
+      console.error('Error exporting BOM:', error);
+      setSnackbarMessage('Failed to export BOM. Please try again.');
       setSnackbarSeverity('error');
       setSnackbarOpen(true);
     }
@@ -399,6 +390,16 @@ Best regards`;
                   fullWidth
                 >
                   Send to Mail
+                </Button>
+                <Button
+                  variant="outlined"
+                  startIcon={<DownloadIcon />}
+                  onClick={handleExportBOM}
+                  disabled={bomItems.length === 0}
+                  fullWidth
+                  color="secondary"
+                >
+                  Export BOM
                 </Button>
               </Box>
               

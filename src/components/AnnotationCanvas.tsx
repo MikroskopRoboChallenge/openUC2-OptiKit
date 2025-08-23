@@ -149,7 +149,7 @@ export const AnnotationCanvas: React.FC<AnnotationCanvasProps> = ({
             onContextMenu={(e) => handleContextMenu(e, annotation.id)}
             onDragEnd={(e) => {
               const pos = e.target.position();
-              moveAnnotation(annotation.id, pos);
+              moveAnnotation(annotation.id, { x: pos.x, y: pos.y });
             }}
           />
         );
@@ -166,8 +166,27 @@ export const AnnotationCanvas: React.FC<AnnotationCanvasProps> = ({
               stroke={strokeColor}
               strokeWidth={strokeWidth}
               fill={strokeColor}
+              draggable
               onClick={() => selectItem(annotation.id, 'annotation')}
               onContextMenu={(e) => handleContextMenu(e, annotation.id)}
+              onDragEnd={(e) => {
+                const pos = e.target.position();
+                const deltaX = pos.x;
+                const deltaY = pos.y;
+                
+                // Move all points by the delta
+                if (annotation.points) {
+                  const newPoints = annotation.points.map(p => ({
+                    x: p.x + deltaX,
+                    y: p.y + deltaY
+                  }));
+                  
+                  moveAnnotation(annotation.id, newPoints);
+                }
+                
+                // Reset position to avoid double transformation
+                e.target.position({ x: 0, y: 0 });
+              }}
             />
           );
         } else if (annotation.type === 'optical-axis') {
@@ -178,8 +197,27 @@ export const AnnotationCanvas: React.FC<AnnotationCanvasProps> = ({
               stroke={strokeColor}
               strokeWidth={strokeWidth}
               dash={[10, 5]}
+              draggable
               onClick={() => selectItem(annotation.id, 'annotation')}
               onContextMenu={(e) => handleContextMenu(e, annotation.id)}
+              onDragEnd={(e) => {
+                const pos = e.target.position();
+                const deltaX = pos.x;
+                const deltaY = pos.y;
+                
+                // Move all points by the delta
+                if (annotation.points) {
+                  const newPoints = annotation.points.map(p => ({
+                    x: p.x + deltaX,
+                    y: p.y + deltaY
+                  }));
+                  
+                  moveAnnotation(annotation.id, newPoints);
+                }
+                
+                // Reset position to avoid double transformation
+                e.target.position({ x: 0, y: 0 });
+              }}
             />
           );
         } else {
@@ -189,8 +227,27 @@ export const AnnotationCanvas: React.FC<AnnotationCanvasProps> = ({
               points={points}
               stroke={strokeColor}
               strokeWidth={strokeWidth}
+              draggable
               onClick={() => selectItem(annotation.id, 'annotation')}
               onContextMenu={(e) => handleContextMenu(e, annotation.id)}
+              onDragEnd={(e) => {
+                const pos = e.target.position();
+                const deltaX = pos.x;
+                const deltaY = pos.y;
+                
+                // Move all points by the delta
+                if (annotation.points) {
+                  const newPoints = annotation.points.map(p => ({
+                    x: p.x + deltaX,
+                    y: p.y + deltaY
+                  }));
+                  
+                  moveAnnotation(annotation.id, newPoints);
+                }
+                
+                // Reset position to avoid double transformation
+                e.target.position({ x: 0, y: 0 });
+              }}
             />
           );
         }

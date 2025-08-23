@@ -58,7 +58,7 @@ interface AppStore extends AppState {
   updateModuleCustomText: (moduleId: string, customText: string) => void;
   updateModuleParams: (moduleId: string, params: Record<string, unknown>) => void;
   addAnnotation: (annotation: Omit<Annotation, 'id'>) => void;
-  moveAnnotation: (annotationId: string, position: Point) => void;
+  moveAnnotation: (annotationId: string, positionOrPoints: Point | Point[]) => void;
   removeAnnotation: (annotationId: string) => void;
   selectItem: (itemId: string | null, itemType: 'module' | 'annotation' | null) => void;
   addToSelection: (itemId: string, itemType: 'module' | 'annotation') => void;
@@ -348,13 +348,20 @@ export const useAppStore = create<AppStore>((set, get) => ({
     }));
   },
 
-  moveAnnotation: (annotationId: string, position: Point) => {
+  moveAnnotation: (annotationId: string, positionOrPoints: Point | Point[]) => {
     set(state => ({
-      annotations: state.annotations.map(annotation =>
-        annotation.id === annotationId && annotation.points
-          ? { ...annotation, points: [position, ...annotation.points.slice(1)] }
-          : annotation
-      )
+      annotations: state.annotations.map(annotation => {
+        if (annotation.id === annotationId && annotation.points) {
+          // If we receive multiple points, replace all points
+          if (Array.isArray(positionOrPoints)) {
+            return { ...annotation, points: positionOrPoints };
+          } else {
+            // If we receive a single point, replace only the first point (backward compatibility)
+            return { ...annotation, points: [positionOrPoints, ...annotation.points.slice(1)] };
+          }
+        }
+        return annotation;
+      })
     }));
     
     // Save state after moving
