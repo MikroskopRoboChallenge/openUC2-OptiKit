@@ -11,10 +11,13 @@ import {
   Box,
   Typography,
   Alert,
+  CircularProgress,
 } from '@mui/material';
 import { ModuleSizeSelector } from './ModuleSizeSelector';
 import { ModuleDrawingCanvas } from './ModuleDrawingCanvas';
 import { ModuleMetadataForm, type ModuleMetadata } from './ModuleMetadataForm';
+import { saveModuleToGitHubCSV } from '../utils/csvHandler';
+import { useAppStore } from '../stores/appStore';
 
 interface DrawingElement {
   id: string;
@@ -32,6 +35,8 @@ interface DrawingElement {
   stroke?: string;
   strokeWidth?: number;
 }
+
+export type { DrawingElement };
 
 interface ModuleCreationWizardProps {
   open: boolean;
@@ -55,8 +60,11 @@ export const ModuleCreationWizard: React.FC<ModuleCreationWizardProps> = ({
     color: '#1e4670',
     description: '',
     price: undefined,
-    notification: ''
+    notification: '',
+    linkUrl: ''
   });
+  const [isCreating, setIsCreating] = useState(false);
+  const { loadModules } = useAppStore();
 
   const handleNext = () => {
     setActiveStep((prevActiveStep) => prevActiveStep + 1);
@@ -76,7 +84,8 @@ export const ModuleCreationWizard: React.FC<ModuleCreationWizardProps> = ({
       color: '#1e4670',
       description: '',
       price: undefined,
-      notification: ''
+      notification: '',
+      linkUrl: ''
     });
   };
 
@@ -94,46 +103,62 @@ export const ModuleCreationWizard: React.FC<ModuleCreationWizardProps> = ({
   };
 
   const handleCreateModule = async () => {
+    setIsCreating(true);
     try {
-      // Generate unique ID for the custom module
-      const moduleId = `custom-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      
-      // Create module data structure
-      const customModule = {
-        id: moduleId,
-        name: metadata.name,
-        group: metadata.group,
-        color: metadata.color,
-        width: moduleSize.width.toString(),
-        height: moduleSize.height.toString(),
-        thumbnail: '', // Could generate a thumbnail from the drawing
-        cadUrl: '',
-        description: metadata.description,
-        defaultParams: '{}',
-        price: metadata.price?.toString() || '',
-        notification: metadata.notification || '',
-        drawingElements, // Store the drawing data
-        isCustom: true
-      };
+      // Save module to GitHub CSV
+      const success = await saveModuleToGitHubCSV({
+        metadata,
+        moduleSize,
+        drawingElements
+      });
 
-      // Save to localStorage for now (could be extended to save to server)
-      const existingCustomModules = JSON.parse(localStorage.getItem('customModules') || '[]');
-      existingCustomModules.push(customModule);
-      localStorage.setItem('customModules', JSON.stringify(existingCustomModules));
+      if (success) {
+        // Reload modules to include the new one in the sidebar
+        await loadModules();
+        
+        // Generate unique ID for the custom module
+        const moduleId = `custom-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        
+        // Create module data structure for callback
+        const customModule = {
+          id: moduleId,
+          name: metadata.name,
+          group: metadata.group,
+          color: metadata.color,
+          width: moduleSize.width.toString(),
+          height: moduleSize.height.toString(),
+          thumbnail: '', // Could generate a thumbnail from the drawing
+          cadUrl: '',
+          description: metadata.description,
+          defaultParams: JSON.stringify({
+            height: 50,
+            drawingElements,
+            isCustom: true
+          }),
+          price: metadata.price?.toString() || '',
+          notification: metadata.notification || '',
+          linkUrl: metadata.linkUrl || '',
+          isCustom: true
+        };
 
-      // Notify parent component
-      if (onModuleCreated) {
-        onModuleCreated(customModule);
+        // Notify parent component
+        if (onModuleCreated) {
+          onModuleCreated(customModule);
+        }
+
+        // Reset wizard and close
+        handleReset();
+        onClose();
+
+        alert('✅ Custom module saved to GitHub successfully! It will appear in the part library shortly.');
+      } else {
+        alert('❌ Failed to save custom module to GitHub. Please try again.');
       }
-
-      // Reset wizard and close
-      handleReset();
-      onClose();
-
-      alert('Custom module created successfully!');
     } catch (error) {
       console.error('Error creating custom module:', error);
-      alert('Error creating custom module. Please try again.');
+      alert('❌ Error creating custom module. Please try again.');
+    } finally {
+      setIsCreating(false);
     }
   };
 
@@ -168,7 +193,7 @@ export const ModuleCreationWizard: React.FC<ModuleCreationWizardProps> = ({
               Review Your Custom Module
             </Typography>
             <Alert severity="info" sx={{ mb: 2 }}>
-              Review your module details below. Once created, you can use this module in your designs.
+              Review your module details below. Once created, the module will be saved to the openUC2 parts database and will appear in your part library.
             </Alert>
             <Box sx={{ display: 'grid', gap: 2 }}>
               <Typography><strong>Name:</strong> {metadata.name}</Typography>
@@ -176,6 +201,7 @@ export const ModuleCreationWizard: React.FC<ModuleCreationWizardProps> = ({
               <Typography><strong>Group:</strong> {metadata.group}</Typography>
               <Typography><strong>Description:</strong> {metadata.description}</Typography>
               <Typography><strong>Drawing Elements:</strong> {drawingElements.length} element(s)</Typography>
+              {metadata.linkUrl && <Typography><strong>Part Link:</strong> {metadata.linkUrl}</Typography>}
               {metadata.price && <Typography><strong>Price:</strong> €{metadata.price}</Typography>}
               {metadata.notification && (
                 <Typography><strong>Note:</strong> {metadata.notification}</Typography>
@@ -217,9 +243,9 @@ export const ModuleCreationWizard: React.FC<ModuleCreationWizardProps> = ({
       </DialogContent>
 
       <DialogActions>
-        <Button onClick={onClose}>Cancel</Button>
+        <Button onClick={onClose} disabled={isCreating}>Cancel</Button>
         <Button
-          disabled={activeStep === 0}
+          disabled={activeStep === 0 || isCreating}
           onClick={handleBack}
         >
           Back
@@ -227,9 +253,10 @@ export const ModuleCreationWizard: React.FC<ModuleCreationWizardProps> = ({
         <Button
           variant="contained"
           onClick={activeStep === steps.length - 1 ? handleCreateModule : handleNext}
-          disabled={!canProceedToNext()}
+          disabled={!canProceedToNext() || isCreating}
+          startIcon={isCreating && activeStep === steps.length - 1 ? <CircularProgress size={16} /> : undefined}
         >
-          {activeStep === steps.length - 1 ? 'Create Module' : 'Next'}
+          {activeStep === steps.length - 1 ? (isCreating ? 'Creating...' : 'Create Module') : 'Next'}
         </Button>
       </DialogActions>
     </Dialog>

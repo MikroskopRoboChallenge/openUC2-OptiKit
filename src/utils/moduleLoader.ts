@@ -14,6 +14,7 @@ export interface ModuleCSVRow {
   autodeskInventor?: string;
   price?: string;
   notification?: string;
+  linkUrl?: string;
 }
 
 export function parseCSV(csvText: string): ModuleCSVRow[] {
@@ -80,7 +81,8 @@ export function csvRowToModuleDefinition(row: ModuleCSVRow): ModuleDefinition {
     isWildCard: (defaultParams as { isWildCard?: boolean }).isWildCard || false,
     autodeskInventor: row.autodeskInventor,
     price: row.price ? parseFloat(row.price) : undefined,
-    notification: notification || undefined
+    notification: notification || undefined,
+    linkUrl: row.linkUrl || undefined
   };
 }
 

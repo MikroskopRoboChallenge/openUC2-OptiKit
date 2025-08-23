@@ -55,12 +55,47 @@ export const ModuleDrawingCanvas: React.FC<ModuleDrawingCanvasProps> = ({
   const [currentColor, setCurrentColor] = useState('#000000');
   const [textInput, setTextInput] = useState('');
   const [selectMode, setSelectMode] = useState(false);
+  const [history, setHistory] = useState<DrawingElement[][]>([[]]);
+  const [historyIndex, setHistoryIndex] = useState(0);
   const stageRef = useRef<any>(null);
 
   const canvasWidth = moduleSize.width * CELL_SIZE;
   const canvasHeight = moduleSize.height * CELL_SIZE;
 
   const generateId = () => `element-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+  // History management
+  const addToHistory = useCallback((newElements: DrawingElement[]) => {
+    const newHistory = history.slice(0, historyIndex + 1);
+    newHistory.push([...newElements]);
+    setHistory(newHistory);
+    setHistoryIndex(newHistory.length - 1);
+    onElementsChange(newElements);
+  }, [history, historyIndex, onElementsChange]);
+
+  const undo = useCallback(() => {
+    if (historyIndex > 0) {
+      const newIndex = historyIndex - 1;
+      setHistoryIndex(newIndex);
+      onElementsChange(history[newIndex]);
+    }
+  }, [historyIndex, history, onElementsChange]);
+
+  const redo = useCallback(() => {
+    if (historyIndex < history.length - 1) {
+      const newIndex = historyIndex + 1;
+      setHistoryIndex(newIndex);
+      onElementsChange(history[newIndex]);
+    }
+  }, [historyIndex, history, onElementsChange]);
+
+  // Initialize history with current elements
+  React.useEffect(() => {
+    if (history.length === 1 && history[0].length === 0 && elements.length > 0) {
+      setHistory([elements]);
+      setHistoryIndex(0);
+    }
+  }, [elements, history]);
 
   const handleMouseDown = useCallback((e: KonvaEventObject<MouseEvent>) => {
     if (selectMode) return;
@@ -130,13 +165,14 @@ export const ModuleDrawingCanvas: React.FC<ModuleDrawingCanvasProps> = ({
             text: textInput,
             fill: currentColor,
           };
-          onElementsChange([...elements, newElement]);
+          const newElements = [...elements, newElement];
+          addToHistory(newElements);
           setTextInput('');
         }
         setIsDrawing(false);
         break;
     }
-  }, [activeTool, elements, onElementsChange, currentColor, strokeWidth, textInput, selectMode]);
+  }, [activeTool, elements, addToHistory, currentColor, strokeWidth, textInput, selectMode]);
 
   const handleMouseMove = useCallback((e: KonvaEventObject<MouseEvent>) => {
     if (!isDrawing || !currentElement || selectMode || activeTool === 'text') return;
@@ -176,10 +212,11 @@ export const ModuleDrawingCanvas: React.FC<ModuleDrawingCanvasProps> = ({
   const handleMouseUp = useCallback(() => {
     if (!isDrawing || !currentElement || activeTool === 'text') return;
 
-    onElementsChange([...elements, currentElement]);
+    const newElements = [...elements, currentElement];
+    addToHistory(newElements);
     setCurrentElement(null);
     setIsDrawing(false);
-  }, [isDrawing, currentElement, elements, onElementsChange, activeTool]);
+  }, [isDrawing, currentElement, elements, addToHistory, activeTool]);
 
   const renderElements = () => {
     const allElements = [...elements];
@@ -357,10 +394,26 @@ export const ModuleDrawingCanvas: React.FC<ModuleDrawingCanvasProps> = ({
 
           <Button
             size="small"
-            onClick={() => onElementsChange([])}
+            onClick={() => addToHistory([])}
             disabled={elements.length === 0}
           >
             Clear All
+          </Button>
+
+          <Button
+            size="small"
+            onClick={undo}
+            disabled={historyIndex <= 0}
+          >
+            Undo
+          </Button>
+
+          <Button
+            size="small"
+            onClick={redo}
+            disabled={historyIndex >= history.length - 1}
+          >
+            Redo
           </Button>
         </Box>
       </Paper>

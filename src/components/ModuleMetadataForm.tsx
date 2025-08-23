@@ -8,6 +8,8 @@ import {
   Select,
   MenuItem,
   InputAdornment,
+  Alert,
+  Link,
 } from '@mui/material';
 
 export interface ModuleMetadata {
@@ -17,6 +19,7 @@ export interface ModuleMetadata {
   description: string;
   price?: number;
   notification?: string;
+  linkUrl?: string;
 }
 
 interface ModuleMetadataFormProps {
@@ -63,9 +66,19 @@ export const ModuleMetadataForm: React.FC<ModuleMetadataFormProps> = ({
       <Typography variant="h6" gutterBottom>
         Module Details
       </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
         Provide information about your custom module.
       </Typography>
+
+      <Alert severity="info" sx={{ mb: 3 }}>
+        <Typography variant="body2">
+          <strong>OpenUC2 Integration:</strong> You can specify links to existing parts that you'd like to integrate. 
+          The openUC2 team will try their best to "cubify" the part so that it becomes compatible with the existing system.{' '}
+          <Link href="https://github.com/openUC2/UC2-GIT" target="_blank" rel="noopener">
+            Learn more about the UC2 system
+          </Link>
+        </Typography>
+      </Alert>
 
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
         <TextField
@@ -135,6 +148,15 @@ export const ModuleMetadataForm: React.FC<ModuleMetadataFormProps> = ({
       </Box>
 
       <Box sx={{ mt: 3, display: 'grid', gap: 3 }}>
+        <TextField
+          fullWidth
+          label="Part Link/URL"
+          value={metadata.linkUrl || ''}
+          onChange={(e) => handleChange('linkUrl', e.target.value)}
+          placeholder="https://example.com/part-datasheet-or-store-link"
+          helperText="Optional link to part specifications, store page, or documentation"
+        />
+
         <TextField
           fullWidth
           label="Description"

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   Typography,
@@ -6,6 +6,8 @@ import {
   CardContent,
   CardActionArea,
   alpha,
+  TextField,
+  Alert,
 } from '@mui/material';
 
 interface ModuleSizeSelectorProps {
@@ -32,22 +34,97 @@ export const ModuleSizeSelector: React.FC<ModuleSizeSelectorProps> = ({
   selectedSize,
   onSizeSelect
 }) => {
+  const [customWidth, setCustomWidth] = useState(selectedSize.width.toString());
+  const [customHeight, setCustomHeight] = useState(selectedSize.height.toString());
+  const [useCustomSize, setUseCustomSize] = useState(false);
+
+  const handleCustomSizeChange = () => {
+    const width = parseInt(customWidth, 10);
+    const height = parseInt(customHeight, 10);
+    
+    if (width >= 1 && width <= 5 && height >= 1 && height <= 5) {
+      onSizeSelect(width, height);
+    }
+  };
+
+  const handlePresetSelect = (width: number, height: number) => {
+    setUseCustomSize(false);
+    setCustomWidth(width.toString());
+    setCustomHeight(height.toString());
+    onSizeSelect(width, height);
+  };
+
+  const isValidCustomSize = () => {
+    const width = parseInt(customWidth, 10);
+    const height = parseInt(customHeight, 10);
+    return width >= 1 && width <= 5 && height >= 1 && height <= 5;
+  };
   return (
     <Box>
       <Typography variant="h6" gutterBottom>
         Select Module Size
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-        Choose the footprint size for your custom module in grid units.
+        Choose the footprint size for your custom module in grid units (1-5).
       </Typography>
       
+      {/* Custom Size Input */}
+      <Card variant="outlined" sx={{ mb: 3, p: 2 }}>
+        <Typography variant="subtitle1" gutterBottom>
+          Custom Size
+        </Typography>
+        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 2 }}>
+          <TextField
+            label="Width"
+            type="number"
+            size="small"
+            value={customWidth}
+            onChange={(e) => {
+              setCustomWidth(e.target.value);
+              setUseCustomSize(true);
+            }}
+            onBlur={handleCustomSizeChange}
+            onKeyDown={(e) => e.key === 'Enter' && handleCustomSizeChange()}
+            inputProps={{ min: 1, max: 5 }}
+            sx={{ width: 100 }}
+          />
+          <Typography>×</Typography>
+          <TextField
+            label="Height"
+            type="number"
+            size="small"
+            value={customHeight}
+            onChange={(e) => {
+              setCustomHeight(e.target.value);
+              setUseCustomSize(true);
+            }}
+            onBlur={handleCustomSizeChange}
+            onKeyDown={(e) => e.key === 'Enter' && handleCustomSizeChange()}
+            inputProps={{ min: 1, max: 5 }}
+            sx={{ width: 100 }}
+          />
+          <Typography variant="body2" color="text.secondary">
+            grid units
+          </Typography>
+        </Box>
+        {!isValidCustomSize() && (customWidth || customHeight) && (
+          <Alert severity="warning" sx={{ mt: 1 }}>
+            Please enter values between 1 and 5 for both width and height.
+          </Alert>
+        )}
+      </Card>
+
+      {/* Preset Sizes */}
+      <Typography variant="subtitle1" gutterBottom>
+        Common Sizes
+      </Typography>
       <Box sx={{
         display: 'grid',
         gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(3, 1fr)', md: 'repeat(4, 1fr)' },
         gap: 2,
       }}>
         {commonSizes.map((size) => {
-          const isSelected = selectedSize.width === size.width && selectedSize.height === size.height;
+          const isSelected = selectedSize.width === size.width && selectedSize.height === size.height && !useCustomSize;
           
           return (
             <Card
@@ -64,7 +141,7 @@ export const ModuleSizeSelector: React.FC<ModuleSizeSelectorProps> = ({
               }}
             >
                 <CardActionArea
-                  onClick={() => onSizeSelect(size.width, size.height)}
+                  onClick={() => handlePresetSelect(size.width, size.height)}
                   sx={{ p: 2 }}
                 >
                   <CardContent sx={{ p: 0, textAlign: 'center' }}>
