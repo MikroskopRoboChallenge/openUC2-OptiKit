@@ -1,0 +1,413 @@
+import React, { useState, useRef, useCallback } from 'react';
+import {
+  Box,
+  Typography,
+  ButtonGroup,
+  Button,
+  Slider,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  TextField,
+  Paper,
+} from '@mui/material';
+import { Stage, Layer, Line, Rect, Circle, Ellipse, Text, Group } from 'react-konva';
+import type { KonvaEventObject } from 'konva/lib/Node';
+
+export type DrawingTool = 'freehand' | 'rectangle' | 'circle' | 'ellipse' | 'text';
+
+interface DrawingElement {
+  id: string;
+  type: DrawingTool;
+  points?: number[];
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
+  radius?: number;
+  radiusX?: number;
+  radiusY?: number;
+  text?: string;
+  fill?: string;
+  stroke?: string;
+  strokeWidth?: number;
+}
+
+interface ModuleDrawingCanvasProps {
+  moduleSize: { width: number; height: number };
+  elements: DrawingElement[];
+  onElementsChange: (elements: DrawingElement[]) => void;
+}
+
+const CELL_SIZE = 80; // Size of each grid cell in pixels
+const COLORS = ['#000000', '#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff'];
+
+export const ModuleDrawingCanvas: React.FC<ModuleDrawingCanvasProps> = ({
+  moduleSize,
+  elements,
+  onElementsChange
+}) => {
+  const [activeTool, setActiveTool] = useState<DrawingTool>('freehand');
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [currentElement, setCurrentElement] = useState<DrawingElement | null>(null);
+  const [strokeWidth, setStrokeWidth] = useState(2);
+  const [currentColor, setCurrentColor] = useState('#000000');
+  const [textInput, setTextInput] = useState('');
+  const [selectMode, setSelectMode] = useState(false);
+  const stageRef = useRef<any>(null);
+
+  const canvasWidth = moduleSize.width * CELL_SIZE;
+  const canvasHeight = moduleSize.height * CELL_SIZE;
+
+  const generateId = () => `element-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+  const handleMouseDown = useCallback((e: KonvaEventObject<MouseEvent>) => {
+    if (selectMode) return;
+
+    const pos = e.target.getStage()?.getPointerPosition();
+    if (!pos) return;
+
+    setIsDrawing(true);
+    const id = generateId();
+
+    switch (activeTool) {
+      case 'freehand':
+        setCurrentElement({
+          id,
+          type: 'freehand',
+          points: [pos.x, pos.y],
+          stroke: currentColor,
+          strokeWidth,
+        });
+        break;
+      
+      case 'rectangle':
+        setCurrentElement({
+          id,
+          type: 'rectangle',
+          x: pos.x,
+          y: pos.y,
+          width: 0,
+          height: 0,
+          stroke: currentColor,
+          strokeWidth,
+        });
+        break;
+      
+      case 'circle':
+        setCurrentElement({
+          id,
+          type: 'circle',
+          x: pos.x,
+          y: pos.y,
+          radius: 0,
+          stroke: currentColor,
+          strokeWidth,
+        });
+        break;
+      
+      case 'ellipse':
+        setCurrentElement({
+          id,
+          type: 'ellipse',
+          x: pos.x,
+          y: pos.y,
+          radiusX: 0,
+          radiusY: 0,
+          stroke: currentColor,
+          strokeWidth,
+        });
+        break;
+      
+      case 'text':
+        if (textInput.trim()) {
+          const newElement: DrawingElement = {
+            id,
+            type: 'text',
+            x: pos.x,
+            y: pos.y,
+            text: textInput,
+            fill: currentColor,
+          };
+          onElementsChange([...elements, newElement]);
+          setTextInput('');
+        }
+        setIsDrawing(false);
+        break;
+    }
+  }, [activeTool, elements, onElementsChange, currentColor, strokeWidth, textInput, selectMode]);
+
+  const handleMouseMove = useCallback((e: KonvaEventObject<MouseEvent>) => {
+    if (!isDrawing || !currentElement || selectMode || activeTool === 'text') return;
+
+    const pos = e.target.getStage()?.getPointerPosition();
+    if (!pos) return;
+
+    const updatedElement = { ...currentElement };
+
+    switch (activeTool) {
+      case 'freehand':
+        if (updatedElement.points) {
+          updatedElement.points = [...updatedElement.points, pos.x, pos.y];
+        }
+        break;
+      
+      case 'rectangle':
+        updatedElement.width = pos.x - (updatedElement.x || 0);
+        updatedElement.height = pos.y - (updatedElement.y || 0);
+        break;
+      
+      case 'circle':
+        const dx = pos.x - (updatedElement.x || 0);
+        const dy = pos.y - (updatedElement.y || 0);
+        updatedElement.radius = Math.sqrt(dx * dx + dy * dy);
+        break;
+      
+      case 'ellipse':
+        updatedElement.radiusX = Math.abs(pos.x - (updatedElement.x || 0));
+        updatedElement.radiusY = Math.abs(pos.y - (updatedElement.y || 0));
+        break;
+    }
+
+    setCurrentElement(updatedElement);
+  }, [isDrawing, currentElement, activeTool, selectMode]);
+
+  const handleMouseUp = useCallback(() => {
+    if (!isDrawing || !currentElement || activeTool === 'text') return;
+
+    onElementsChange([...elements, currentElement]);
+    setCurrentElement(null);
+    setIsDrawing(false);
+  }, [isDrawing, currentElement, elements, onElementsChange, activeTool]);
+
+  const renderElements = () => {
+    const allElements = [...elements];
+    if (currentElement) {
+      allElements.push(currentElement);
+    }
+
+    return allElements.map((element) => {
+      switch (element.type) {
+        case 'freehand':
+          return (
+            <Line
+              key={element.id}
+              points={element.points}
+              stroke={element.stroke}
+              strokeWidth={element.strokeWidth}
+              tension={0.5}
+              lineCap="round"
+            />
+          );
+        
+        case 'rectangle':
+          return (
+            <Rect
+              key={element.id}
+              x={element.x}
+              y={element.y}
+              width={element.width}
+              height={element.height}
+              stroke={element.stroke}
+              strokeWidth={element.strokeWidth}
+              fill="transparent"
+            />
+          );
+        
+        case 'circle':
+          return (
+            <Circle
+              key={element.id}
+              x={element.x}
+              y={element.y}
+              radius={element.radius}
+              stroke={element.stroke}
+              strokeWidth={element.strokeWidth}
+              fill="transparent"
+            />
+          );
+        
+        case 'ellipse':
+          return (
+            <Ellipse
+              key={element.id}
+              x={element.x}
+              y={element.y}
+              radiusX={element.radiusX || 0}
+              radiusY={element.radiusY || 0}
+              stroke={element.stroke}
+              strokeWidth={element.strokeWidth}
+              fill="transparent"
+            />
+          );
+        
+        case 'text':
+          return (
+            <Text
+              key={element.id}
+              x={element.x}
+              y={element.y}
+              text={element.text}
+              fill={element.fill}
+              fontSize={16}
+              fontFamily="Arial"
+            />
+          );
+        
+        default:
+          return null;
+      }
+    });
+  };
+
+  return (
+    <Box>
+      <Typography variant="h6" gutterBottom>
+        Draw Your Module Design
+      </Typography>
+      
+      <Paper sx={{ p: 2, mb: 2 }}>
+        <Box sx={{ display: 'flex', gap: 2, mb: 2, flexWrap: 'wrap', alignItems: 'center' }}>
+          <ButtonGroup size="small">
+            <Button
+              variant={selectMode ? 'contained' : 'outlined'}
+              onClick={() => {setSelectMode(true); setActiveTool('freehand');}}
+            >
+              Select
+            </Button>
+            <Button
+              variant={activeTool === 'freehand' && !selectMode ? 'contained' : 'outlined'}
+              onClick={() => {setSelectMode(false); setActiveTool('freehand');}}
+            >
+              Freehand
+            </Button>
+            <Button
+              variant={activeTool === 'rectangle' && !selectMode ? 'contained' : 'outlined'}
+              onClick={() => {setSelectMode(false); setActiveTool('rectangle');}}
+            >
+              Rectangle
+            </Button>
+            <Button
+              variant={activeTool === 'circle' && !selectMode ? 'contained' : 'outlined'}
+              onClick={() => {setSelectMode(false); setActiveTool('circle');}}
+            >
+              Circle
+            </Button>
+            <Button
+              variant={activeTool === 'ellipse' && !selectMode ? 'contained' : 'outlined'}
+              onClick={() => {setSelectMode(false); setActiveTool('ellipse');}}
+            >
+              Ellipse
+            </Button>
+            <Button
+              variant={activeTool === 'text' && !selectMode ? 'contained' : 'outlined'}
+              onClick={() => {setSelectMode(false); setActiveTool('text');}}
+            >
+              Text
+            </Button>
+          </ButtonGroup>
+
+          <FormControl size="small" sx={{ minWidth: 80 }}>
+            <InputLabel>Color</InputLabel>
+            <Select
+              value={currentColor}
+              onChange={(e) => setCurrentColor(e.target.value)}
+              label="Color"
+            >
+              {COLORS.map((color) => (
+                <MenuItem key={color} value={color}>
+                  <Box
+                    sx={{
+                      width: 20,
+                      height: 20,
+                      backgroundColor: color,
+                      border: '1px solid #ccc',
+                      mr: 1,
+                      display: 'inline-block'
+                    }}
+                  />
+                  {color}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          <Box sx={{ width: 120 }}>
+            <Typography variant="caption">Stroke Width</Typography>
+            <Slider
+              value={strokeWidth}
+              onChange={(_, value) => setStrokeWidth(value as number)}
+              min={1}
+              max={10}
+              step={1}
+              size="small"
+            />
+          </Box>
+
+          {activeTool === 'text' && (
+            <TextField
+              size="small"
+              label="Text"
+              value={textInput}
+              onChange={(e) => setTextInput(e.target.value)}
+              placeholder="Enter text to place"
+            />
+          )}
+
+          <Button
+            size="small"
+            onClick={() => onElementsChange([])}
+            disabled={elements.length === 0}
+          >
+            Clear All
+          </Button>
+        </Box>
+      </Paper>
+
+      <Paper
+        sx={{
+          p: 1,
+          display: 'inline-block',
+          border: '2px solid #ccc',
+        }}
+      >
+        <Stage
+          width={canvasWidth}
+          height={canvasHeight}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          ref={stageRef}
+        >
+          <Layer>
+            {/* Grid background */}
+            <Group>
+              {Array.from({ length: moduleSize.width + 1 }, (_, i) => (
+                <Line
+                  key={`v-${i}`}
+                  points={[i * CELL_SIZE, 0, i * CELL_SIZE, canvasHeight]}
+                  stroke="#ddd"
+                  strokeWidth={1}
+                />
+              ))}
+              {Array.from({ length: moduleSize.height + 1 }, (_, i) => (
+                <Line
+                  key={`h-${i}`}
+                  points={[0, i * CELL_SIZE, canvasWidth, i * CELL_SIZE]}
+                  stroke="#ddd"
+                  strokeWidth={1}
+                />
+              ))}
+            </Group>
+            {renderElements()}
+          </Layer>
+        </Stage>
+      </Paper>
+      
+      <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+        Canvas size: {moduleSize.width} × {moduleSize.height} grid units
+      </Typography>
+    </Box>
+  );
+};

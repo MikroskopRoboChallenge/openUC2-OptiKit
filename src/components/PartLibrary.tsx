@@ -11,19 +11,24 @@ import {
   Typography,
   Chip,
   InputAdornment,
-  Paper
+  Paper,
+  Button,
+  Divider
 } from '@mui/material';
 import {
   Search as SearchIcon,
-  DragIndicator as DragIcon
+  DragIndicator as DragIcon,
+  Add as AddIcon
 } from '@mui/icons-material';
 import { useAppStore } from '../stores/appStore';
+import { ModuleCreationWizard } from './ModuleCreationWizard';
 import type { ModuleDefinition } from '../types';
 
 export const PartLibrary: React.FC = () => {
   const { modules, loadModules } = useAppStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedGroup, setSelectedGroup] = useState<string>('all');
+  const [showWizard, setShowWizard] = useState(false);
   const longPressTimeout = useRef<number | null>(null);
   const isDragging = useRef(false);
 
@@ -361,6 +366,18 @@ export const PartLibrary: React.FC = () => {
             ))}
           </Select>
         </FormControl>
+        
+        <Divider sx={{ my: 2 }} />
+        
+        <Button
+          variant="outlined"
+          startIcon={<AddIcon />}
+          onClick={() => setShowWizard(true)}
+          fullWidth
+          sx={{ mb: 1 }}
+        >
+          Create Custom Module
+        </Button>
       </Paper>
       
       {/* Content */}
@@ -406,6 +423,16 @@ export const PartLibrary: React.FC = () => {
           Drag parts onto the canvas to place them
         </Typography>
       </Paper>
+      
+      <ModuleCreationWizard
+        open={showWizard}
+        onClose={() => setShowWizard(false)}
+        onModuleCreated={(module) => {
+          // Module created successfully
+          console.log('Custom module created:', module);
+          // Could trigger a reload of modules here
+        }}
+      />
     </Box>
   );
 };
