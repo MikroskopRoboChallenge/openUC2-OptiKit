@@ -229,8 +229,9 @@ export const BOMPanel: React.FC = () => {
       const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${path}`;
       
       // Create email with quotation details
+      // TODO: mailto should reach sales@openuc2.com
       const subject = 'UC2 Configuration - Purchase Request';
-      const body = `Dear UC2 Team,
+      const body = `Dear UC2 Team, 
 
 I would like to request a quotation for the following UC2 configuration:
 
