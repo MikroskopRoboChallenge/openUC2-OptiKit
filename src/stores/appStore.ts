@@ -1075,9 +1075,14 @@ export const useAppStore = create<AppStore>((set, get) => ({
     const jsonString = JSON.stringify(compactExport);
     const base64Data = btoa(jsonString);
     
-    // Create shareable URL
-    const currentUrl = window.location.origin + window.location.pathname;
-    const shareableUrl = `${currentUrl}?data=${base64Data}`;
+    // Create shareable URL - use production URL if on youseetoo.github.io
+    let baseUrl;
+    if (window.location.hostname === 'youseetoo.github.io') {
+      baseUrl = 'https://youseetoo.github.io/configurator';
+    } else {
+      baseUrl = window.location.origin + window.location.pathname;
+    }
+    const shareableUrl = `${baseUrl}?data=${base64Data}`;
     
     // Check URL length and fallback if needed
     if (shareableUrl.length > 2000) {
@@ -1089,7 +1094,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
         }))
       };
       const simplifiedBase64 = btoa(JSON.stringify(simplifiedExport));
-      return `${currentUrl}?data=${simplifiedBase64}`;
+      return `${baseUrl}?data=${simplifiedBase64}`;
     }
     
     return shareableUrl;
