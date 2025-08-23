@@ -74,17 +74,21 @@ export const PartLibrary: React.FC = () => {
       const matchesGroup = selectedGroup === 'all' || module.group === selectedGroup;
       
       // Filter by tab: 0 = all parts (non-user-created), 1 = user created only
-      const isUserCreated = module.defaultParams && 
+      // More robust check for user-created modules
+      const isUserCreated = Boolean(
+        module.defaultParams && 
         typeof module.defaultParams === 'object' && 
-        (module.defaultParams as any)?.isCustom === true;
+        (module.defaultParams as any)?.isCustom === true
+      );
       
-      // Fixed logic: All Parts shows non-user-created, User Created shows user-created
+      // All Parts tab shows non-user-created modules, User Created tab shows user-created modules
       const matchesTab = activeTab === 0 ? !isUserCreated : isUserCreated;
       
       return matchesSearch && matchesGroup && matchesTab;
     } catch (error) {
-      console.error('Error filtering modules:', error);
-      return false; // Skip this module if there's an error
+      console.error('Error filtering modules:', error, module);
+      // If there's an error, default to showing in "All Parts" tab (treat as non-user-created)
+      return activeTab === 0;
     }
   });
 
