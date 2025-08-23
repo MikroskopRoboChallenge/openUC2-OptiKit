@@ -37,7 +37,7 @@ import { useAppStore } from '../stores/appStore';
 import type { ModuleDefinition } from '../types';
 
 export const BOMPanel: React.FC = () => {
-  const { placedModules, modules, removeModule, exportData } = useAppStore();
+  const { placedModules, modules, removeModule, exportData, generateShareableLink } = useAppStore();
   const [buyDialogOpen, setBuyDialogOpen] = React.useState(false);
   const [snackbarOpen, setSnackbarOpen] = React.useState(false);
   const [snackbarMessage, setSnackbarMessage] = React.useState('');
@@ -165,6 +165,9 @@ export const BOMPanel: React.FC = () => {
       // Get current setup data
       const setupData = await exportData();
       
+      // Generate shareable link
+      const shareableLink = generateShareableLink();
+      
       // Create email with quotation details
       const subject = 'UC2 Configuration - Purchase Request';
       const body = `Dear UC2 Team,
@@ -183,6 +186,9 @@ Setup Details:
 Bill of Materials:
 ${bomItems.map(item => `${item.module.name} (${item.count}x) - $${item.totalPrice.toFixed(2)}`).join('\n')}
 
+Shareable Configuration Link:
+${shareableLink}
+
 Configuration Data (JSON format):
 ${setupData}
 
@@ -197,8 +203,8 @@ ${customerName}`;
       // Create mailto link
       const mailtoLink = `mailto:sales@openuc2.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
       
-      // Open email client
-      window.location.href = mailtoLink;
+      // Open email client in new window/tab
+      window.open(mailtoLink, '_blank');
       
       // Clear form and close dialog
       setCustomerName('');
@@ -221,6 +227,9 @@ ${customerName}`;
 
   const handleSendToMail = async () => {
     try {
+      // Generate shareable link
+      const shareableLink = generateShareableLink();
+      
       // Create email subject and body
       const subject = 'UC2 Configuration - Bill of Materials';
       const body = `Dear colleague,
@@ -235,16 +244,19 @@ Setup Summary:
 Bill of Materials:
 ${bomItems.map(item => `${item.module.name} (${item.count}x) - $${item.totalPrice.toFixed(2)}`).join('\n')}
 
-You can create this configuration using the UC2 OptiKit configurator at:
-https://openuc2.github.io/openUC2-OptiKit/configurator
+Direct Configuration Link (click to open):
+${shareableLink}
+
+You can also create this configuration manually using the UC2 OptiKit configurator at:
+https://youseetoo.github.io/configurator
 
 Best regards`;
 
       // Create mailto link
       const mailtoLink = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
       
-      // Open email client
-      window.location.href = mailtoLink;
+      // Open email client in new window/tab
+      window.open(mailtoLink, '_blank');
       
       setSnackbarMessage('Email client opened with BOM details');
       setSnackbarSeverity('success');

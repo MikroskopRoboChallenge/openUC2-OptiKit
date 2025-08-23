@@ -187,7 +187,7 @@ export const Layout: React.FC = () => {
               <Tab label="Layers" value="layers" data-tour="layers-tab" />
               <Tab label="Properties" value="properties" data-tour="properties-tab" />
               <Tab label="Annotations" value="annotations" data-tour="annotations-tab" />
-              <Tab label="BOM" value="bom" data-tour="bom-tab" />
+              <Tab label="BOM/Quote" value="bom" data-tour="bom-tab" />
             </Tabs>
             
             <Box sx={{ flex: 1, overflow: 'auto', p: 2 }}>

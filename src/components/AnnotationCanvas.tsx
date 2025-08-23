@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Line, Arrow, Text, Group, Rect } from 'react-konva';
 import { useAppStore } from '../stores/appStore';
 import type { KonvaEventObject } from 'konva/lib/Node';
@@ -29,6 +29,14 @@ export const AnnotationCanvas: React.FC<AnnotationCanvasProps> = ({
   const [isDrawing, setIsDrawing] = useState(false);
   const [currentPoints, setCurrentPoints] = useState<Point[]>([]);
 
+  // Reset drawing state when annotation mode changes
+  useEffect(() => {
+    if (annotationMode === 'none') {
+      setIsDrawing(false);
+      setCurrentPoints([]);
+    }
+  }, [annotationMode]);
+
   const handleContextMenu = (e: KonvaEventObject<MouseEvent>, annotationId: string) => {
     e.evt.preventDefault();
     const confirmDelete = window.confirm('Delete this annotation?');
@@ -39,6 +47,9 @@ export const AnnotationCanvas: React.FC<AnnotationCanvasProps> = ({
 
   const handleCanvasClick = (e: KonvaEventObject<MouseEvent>) => {
     if (annotationMode === 'none') return;
+
+    // Check if the click target is the invisible background rect - only accept those clicks
+    if (e.target.attrs.name !== 'annotation-background') return;
 
     // Stop event propagation to prevent canvas click
     e.cancelBubble = true;
@@ -114,6 +125,9 @@ export const AnnotationCanvas: React.FC<AnnotationCanvasProps> = ({
 
   const handleMouseMove = (e: KonvaEventObject<MouseEvent>) => {
     if (!isDrawing || currentPoints.length === 0) return;
+    
+    // Only respond to mouse move on the annotation background
+    if (e.target.attrs.name !== 'annotation-background') return;
 
     const stage = e.target.getStage();
     if (!stage) return;
@@ -308,6 +322,7 @@ export const AnnotationCanvas: React.FC<AnnotationCanvasProps> = ({
       {/* Invisible background to capture mouse events - only when in annotation mode */}
       {annotationMode !== 'none' && (
         <Rect
+          name="annotation-background"
           x={-5000}
           y={-5000}
           width={10000}
