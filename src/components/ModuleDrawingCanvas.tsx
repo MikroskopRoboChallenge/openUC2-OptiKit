@@ -72,10 +72,13 @@ export const ModuleDrawingCanvas = React.forwardRef<
 
   // History management
   const addToHistory = useCallback((newElements: DrawingElement[]) => {
+    console.log('🎨 addToHistory called with', newElements.length, 'elements');
+    console.log('🎨 Elements being added:', newElements);
     const newHistory = history.slice(0, historyIndex + 1);
     newHistory.push([...newElements]);
     setHistory(newHistory);
     setHistoryIndex(newHistory.length - 1);
+    console.log('🎨 Calling onElementsChange with', newElements.length, 'elements');
     onElementsChange(newElements);
   }, [history, historyIndex, onElementsChange]);
 
@@ -97,6 +100,12 @@ export const ModuleDrawingCanvas = React.forwardRef<
 
   // Generate SVG from drawing elements
   const generateSVGFromElements = useCallback((elements: DrawingElement[], width: number, height: number): string => {
+    console.log('🎨 generateSVGFromElements called with:');
+    console.log('- Elements count:', elements.length);
+    console.log('- Canvas size:', { width, height });
+    console.log('- Module size:', moduleSize);
+    console.log('- Elements data:', elements);
+    
     const svgElements: string[] = [];
     
     // Add grid background
@@ -113,9 +122,12 @@ export const ModuleDrawingCanvas = React.forwardRef<
     }
     
     svgElements.push(...gridLines);
+    console.log('🎨 Added', gridLines.length, 'grid lines');
     
     // Convert each drawing element to SVG
+    let processedElements = 0;
     elements.forEach((element) => {
+      console.log('🎨 Processing element:', element);
       switch (element.type) {
         case 'freehand': {
           if (element.points && element.points.length >= 4) {
@@ -126,6 +138,7 @@ export const ModuleDrawingCanvas = React.forwardRef<
             svgElements.push(
               `<path d="${pathData}" stroke="${element.stroke || '#000'}" stroke-width="${element.strokeWidth || 2}" fill="none" stroke-linecap="round"/>`
             );
+            processedElements++;
           }
           break;
         }
@@ -134,43 +147,65 @@ export const ModuleDrawingCanvas = React.forwardRef<
           svgElements.push(
             `<rect x="${element.x}" y="${element.y}" width="${element.width}" height="${element.height}" stroke="${element.stroke || '#000'}" stroke-width="${element.strokeWidth || 2}" fill="transparent"/>`
           );
+          processedElements++;
           break;
         
         case 'circle':
           svgElements.push(
             `<circle cx="${element.x}" cy="${element.y}" r="${element.radius}" stroke="${element.stroke || '#000'}" stroke-width="${element.strokeWidth || 2}" fill="transparent"/>`
           );
+          processedElements++;
           break;
         
         case 'ellipse':
           svgElements.push(
             `<ellipse cx="${element.x}" cy="${element.y}" rx="${element.radiusX || 0}" ry="${element.radiusY || 0}" stroke="${element.stroke || '#000'}" stroke-width="${element.strokeWidth || 2}" fill="transparent"/>`
           );
+          processedElements++;
           break;
         
         case 'text':
           svgElements.push(
             `<text x="${element.x}" y="${element.y}" fill="${element.fill || '#000'}" font-size="16" font-family="Arial">${element.text || ''}</text>`
           );
+          processedElements++;
           break;
       }
     });
     
-    return `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
+    console.log('🎨 SVG generation complete:');
+    console.log('- Processed', processedElements, 'drawing elements');
+    console.log('- Total SVG elements:', svgElements.length);
+    
+    const finalSvg = `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
 ${svgElements.join('\n')}
 </svg>`;
+    
+    console.log('🎨 Final SVG:', finalSvg);
+    return finalSvg;
   }, [moduleSize]);
 
   // Export canvas as SVG
   const exportCanvasAsSVG = useCallback(() => {
     try {
+      console.log('🎨 ModuleDrawingCanvas: Starting SVG export...');
+      console.log('Elements to export:', elements.length);
+      console.log('Canvas dimensions:', { width: canvasWidth, height: canvasHeight });
+      console.log('Elements data:', elements);
+      
+      // Force use the latest elements from props
       const svg = generateSVGFromElements(elements, canvasWidth, canvasHeight);
+      
+      console.log('🎨 Generated SVG length:', svg.length);
+      console.log('🎨 Generated SVG content:');
+      console.log(svg);
+      
       if (onCanvasExport) {
         onCanvasExport(svg);
       }
       return svg;
     } catch (error) {
-      console.error('Failed to export canvas as SVG:', error);
+      console.error('🎨 Failed to export canvas as SVG:', error);
       return null;
     }
   }, [elements, canvasWidth, canvasHeight, onCanvasExport, generateSVGFromElements]);
@@ -181,10 +216,22 @@ ${svgElements.join('\n')}
   }, [exportCanvasAsSVG]);
 
   // Expose export function to parent
-  React.useImperativeHandle(ref, () => ({
-    exportAsImage: exportCanvasAsImage,
-    exportAsSVG: exportCanvasAsSVG
-  }));
+  React.useImperativeHandle(ref, () => {
+    console.log('🎨 ModuleDrawingCanvas: useImperativeHandle being called');
+    console.log('🎨 Exposing methods:', { exportAsImage: !!exportCanvasAsImage, exportAsSVG: !!exportCanvasAsSVG });
+    
+    return {
+      exportAsImage: exportCanvasAsImage,
+      exportAsSVG: exportCanvasAsSVG
+    };
+  }, [exportCanvasAsImage, exportCanvasAsSVG]);
+
+  // Debug component mounting
+  React.useEffect(() => {
+    console.log('🎨 ModuleDrawingCanvas: Component mounted/updated');
+    console.log('🎨 Current elements:', elements.length);
+    console.log('🎨 Module size:', moduleSize);
+  }, [elements.length, moduleSize]);
 
   // Initialize history with current elements
   React.useEffect(() => {
@@ -195,16 +242,28 @@ ${svgElements.join('\n')}
   }, [elements, history]);
 
   const handleMouseDown = useCallback((e: KonvaEventObject<MouseEvent>) => {
-    if (selectMode) return;
+    console.log('🖱️ handleMouseDown triggered');
+    console.log('🖱️ selectMode:', selectMode);
+    console.log('🖱️ activeTool:', activeTool);
+    
+    if (selectMode) {
+      console.log('🖱️ In select mode, skipping draw');
+      return;
+    }
 
     const pos = e.target.getStage()?.getPointerPosition();
-    if (!pos) return;
+    if (!pos) {
+      console.log('🖱️ No position available');
+      return;
+    }
 
+    console.log('🖱️ Starting draw at position:', pos);
     setIsDrawing(true);
     const id = generateId();
 
     switch (activeTool) {
       case 'freehand':
+        console.log('🖱️ Creating freehand element');
         setCurrentElement({
           id,
           type: 'freehand',

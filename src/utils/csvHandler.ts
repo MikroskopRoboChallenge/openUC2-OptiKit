@@ -9,8 +9,13 @@ interface CustomModuleData {
   canvasSVGData?: string;
 }
 
-export async function saveModuleToGitHubCSV(moduleData: CustomModuleData): Promise<boolean> {
+export async function saveModuleToGitHubCSV(moduleData: CustomModuleData): Promise<{ success: boolean; iconPath?: string }> {
   try {
+  console.log('Starting module save to GitHub...', { 
+      moduleName: moduleData.metadata.name,
+      hasSVGData: !!moduleData.canvasSVGData 
+    });
+    
     // GitHub configuration
     const owner = 'beniroquai';
     const repo = 'openUC2-OptiKit-Store';
@@ -26,115 +31,151 @@ export async function saveModuleToGitHubCSV(moduleData: CustomModuleData): Promi
       auth: token.trim()
     });
 
+    // Test authentication first
+    try {
+      console.log('🔐 Testing GitHub authentication...');
+      const userInfo = await octokit.rest.users.getAuthenticated();
+      console.log('✅ Authentication successful:', userInfo.data.login);
+      
+      // Test repository access
+      console.log('🏢 Testing repository access...');
+      const repoInfo = await octokit.request("GET /repos/{owner}/{repo}", {
+        owner,
+        repo
+      });
+      console.log('✅ Repository access successful:', repoInfo.data.full_name);
+      
+    } catch (authError) {
+      console.error('❌ Authentication/Repository access failed:', authError);
+      return { success: false, iconPath: '' };
+    }
+
     // Generate unique module ID
     const timestamp = Date.now();
     const moduleId = `custom-${timestamp}`;
+    console.log('Generated module ID:', moduleId);
 
     // Upload SVG icon to GitHub if canvas SVG data is provided
     let iconUrl = '';
-    if (moduleData.canvasSVGData) {
+    if (moduleData.canvasSVGData && moduleData.canvasSVGData.trim().length > 0) {
       try {
-        iconUrl = await uploadSVGIconToGitHub(octokit, owner, repo, branch, moduleId, moduleData.canvasSVGData);
-      } catch (iconError) {
-        console.warn('Failed to upload SVG icon, proceeding without icon:', iconError);
+        console.log('🚀 Starting SVG upload process...');
+        console.log('SVG data length:', moduleData.canvasSVGData.length);
+        console.log('SVG preview (first 200 chars):', moduleData.canvasSVGData.substring(0, 200));
+        
+        // Validate SVG content
+        if (!moduleData.canvasSVGData.includes('<svg')) {
+          console.error('❌ Invalid SVG: Missing <svg> tag');
+          console.log('Full SVG content:', moduleData.canvasSVGData);
+          throw new Error('Invalid SVG content: Missing <svg> tag');
+        }
+        
+        // Upload SVG using the same method that works for setup JSON files
+        const iconPath = `icons/${moduleId}.svg`;
+        console.log('Target upload path:', iconPath);
+        
+        const base64Data = btoa(unescape(encodeURIComponent(moduleData.canvasSVGData)));
+        console.log('Base64 encoding complete. Length:', base64Data.length);
+        console.log('Base64 preview (first 100 chars):', base64Data.substring(0, 100));
+        
+        console.log('📤 Uploading to GitHub using octokit.request...');
+        console.log('Upload parameters:', { owner, repo, path: iconPath, branch });
+        
+        const uploadResponse = await octokit.request("PUT /repos/{owner}/{repo}/contents/{path}", {
+          owner,
+          repo,
+          path: iconPath,
+          message: `Add SVG icon for custom module: ${moduleId}`,
+          content: base64Data,
+          branch
+        });
+        
+        console.log('✅ SVG upload successful!');
+        console.log('Upload response status:', uploadResponse.status);
+        console.log('Upload response data:', uploadResponse.data);
+        
+        iconUrl = iconPath;
+        console.log('🎯 Icon URL set to:', iconUrl);
+        
+      } catch (iconError: any) {
+        console.error('❌ SVG UPLOAD FAILED:');
+        console.error('Error type:', iconError?.constructor?.name);
+        console.error('Error message:', iconError?.message);
+        console.error('Error status:', iconError?.status);
+        console.error('Error response data:', iconError?.response?.data);
+        console.error('Full error object:', iconError);
+        console.error('Stack trace:', iconError?.stack);
+        console.warn('Proceeding without SVG icon due to upload failure');
+        
+        // Set iconUrl to empty since upload failed
+        iconUrl = '';
       }
+    } else {
+      console.warn('⚠️ No SVG data provided or SVG data is empty - skipping icon upload');
+      console.log('SVG data received:', moduleData.canvasSVGData);
     }
 
     // Prepare the CSV row data
     const csvRow = createCSVRowFromModule(moduleId, moduleData, iconUrl);
+    console.log('📊 CSV PREPARATION:');
+    console.log('Module ID:', moduleId);
+    console.log('Icon URL being used:', iconUrl);
+    console.log('Complete CSV row:', csvRow);
 
-    // Try to get existing CSV file
+    // Update CSV file using the same working method as setup JSON files
+    console.log('📝 Starting CSV update process...');
+    console.log('Target CSV path:', csvPath);
+    
+    // Get existing CSV content
     let existingContent = '';
-    let fileSha = '';
+    let fileSha: string | undefined;
     
     try {
-      const { data: fileData } = await octokit.rest.repos.getContent({
+      const response = await octokit.request("GET /repos/{owner}/{repo}/contents/{path}", {
         owner,
         repo,
         path: csvPath,
         ref: branch
       });
       
-      if ('content' in fileData) {
-        existingContent = atob(fileData.content);
-        fileSha = fileData.sha;
+      if (response.data && typeof response.data === 'object' && 'content' in response.data && 'sha' in response.data) {
+        existingContent = atob(response.data.content as string);
+        fileSha = response.data.sha as string;
       }
-    } catch (error: unknown) {
+    } catch (error: any) {
       // File doesn't exist, create header
-      if ((error as { status?: number }).status === 404) {
+      if (error.status === 404) {
         existingContent = 'id;name;group;color;width;height;thumbnail;cadUrl;description;defaultParams;autodeskInventor;price;notification;linkUrl\n';
+        console.log('CSV file not found, creating with header');
       } else {
         throw error;
       }
     }
-
+    
     // Append new row to existing content
     const newContent = existingContent.trimEnd() + '\n' + csvRow;
-
-    // Encode content as base64
     const encodedContent = btoa(unescape(encodeURIComponent(newContent)));
-
-    // Create or update the file
-    const commitMessage = `Add custom module: ${moduleData.metadata.name}`;
     
-    if (fileSha) {
-      // Update existing file
-      await octokit.rest.repos.createOrUpdateFileContents({
-        owner,
-        repo,
-        path: csvPath,
-        message: commitMessage,
-        content: encodedContent,
-        sha: fileSha,
-        branch
-      });
-    } else {
-      // Create new file
-      await octokit.rest.repos.createOrUpdateFileContents({
-        owner,
-        repo,
-        path: csvPath,
-        message: commitMessage,
-        content: encodedContent,
-        branch
-      });
-    }
-
-    return true;
-  } catch (error) {
-    console.error('Failed to save module to GitHub CSV:', error);
-    return false;
-  }
-}
-
-async function uploadSVGIconToGitHub(
-  octokit: Octokit, 
-  owner: string, 
-  repo: string, 
-  branch: string, 
-  moduleId: string, 
-  canvasSVGData: string
-): Promise<string> {
-  try {
-    // Convert SVG string to base64
-    const base64Data = btoa(unescape(encodeURIComponent(canvasSVGData)));
-    const iconPath = `icons/${moduleId}.svg`;
-    
-    // Upload the SVG icon file
-    await octokit.rest.repos.createOrUpdateFileContents({
+    // Update CSV file using working method
+    await octokit.request("PUT /repos/{owner}/{repo}/contents/{path}", {
       owner,
       repo,
-      path: iconPath,
-      message: `Add SVG icon for custom module: ${moduleId}`,
-      content: base64Data,
-      branch
+      path: csvPath,
+      message: `Add custom module: ${moduleData.metadata.name}`,
+      content: encodedContent,
+      branch,
+      ...(fileSha && { sha: fileSha })
     });
     
-    // Return the URL to the uploaded SVG icon
-    return `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${iconPath}`;
+    console.log('✅ CSV updated successfully');
+    
+    return { 
+      success: true, 
+      iconPath: iconUrl
+    };
   } catch (error) {
-    console.error('Failed to upload SVG icon to GitHub:', error);
-    throw error;
+    console.error('Failed to save module to GitHub CSV:', error);
+    return { success: false };
   }
 }
 

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -63,6 +63,73 @@ interface ModuleCreationWizardProps {
 
 const steps = ['Module Size', 'Draw Design', 'Module Details', 'Review & Save'];
 
+// Manual SVG generation function as fallback
+const generateManualSVG = (elements: DrawingElement[], moduleSize: { width: number; height: number }): string => {
+  const CELL_SIZE = 80;
+  const width = moduleSize.width * CELL_SIZE;
+  const height = moduleSize.height * CELL_SIZE;
+  
+  console.log('🔧 Manual SVG generation:', { elements: elements.length, width, height });
+  
+  const svgElements: string[] = [];
+  
+  // Add grid background
+  for (let i = 0; i <= moduleSize.width; i++) {
+    const x = i * CELL_SIZE;
+    svgElements.push(`<line x1="${x}" y1="0" x2="${x}" y2="${height}" stroke="#ddd" stroke-width="1"/>`);
+  }
+  for (let i = 0; i <= moduleSize.height; i++) {
+    const y = i * CELL_SIZE;
+    svgElements.push(`<line x1="0" y1="${y}" x2="${width}" y2="${y}" stroke="#ddd" stroke-width="1"/>`);
+  }
+  
+  // Convert drawing elements to SVG
+  elements.forEach((element) => {
+    console.log('🔧 Processing element manually:', element.type);
+    switch (element.type) {
+      case 'freehand': {
+        if (element.points && element.points.length >= 4) {
+          let pathData = `M ${element.points[0]} ${element.points[1]}`;
+          for (let i = 2; i < element.points.length; i += 2) {
+            pathData += ` L ${element.points[i]} ${element.points[i + 1]}`;
+          }
+          svgElements.push(
+            `<path d="${pathData}" stroke="${element.stroke || '#000'}" stroke-width="${element.strokeWidth || 2}" fill="none" stroke-linecap="round"/>`
+          );
+        }
+        break;
+      }
+      case 'rectangle':
+        svgElements.push(
+          `<rect x="${element.x}" y="${element.y}" width="${element.width}" height="${element.height}" stroke="${element.stroke || '#000'}" stroke-width="${element.strokeWidth || 2}" fill="transparent"/>`
+        );
+        break;
+      case 'circle':
+        svgElements.push(
+          `<circle cx="${element.x}" cy="${element.y}" r="${element.radius}" stroke="${element.stroke || '#000'}" stroke-width="${element.strokeWidth || 2}" fill="transparent"/>`
+        );
+        break;
+      case 'ellipse':
+        svgElements.push(
+          `<ellipse cx="${element.x}" cy="${element.y}" rx="${element.radiusX || 0}" ry="${element.radiusY || 0}" stroke="${element.stroke || '#000'}" stroke-width="${element.strokeWidth || 2}" fill="transparent"/>`
+        );
+        break;
+      case 'text':
+        svgElements.push(
+          `<text x="${element.x}" y="${element.y}" fill="${element.fill || '#000'}" font-size="16" font-family="Arial">${element.text || ''}</text>`
+        );
+        break;
+    }
+  });
+  
+  const finalSvg = `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
+${svgElements.join('\n')}
+</svg>`;
+  
+  console.log('🔧 Manual SVG generated:', finalSvg);
+  return finalSvg;
+};
+
 export const ModuleCreationWizard: React.FC<ModuleCreationWizardProps> = ({
   open,
   onClose,
@@ -71,7 +138,17 @@ export const ModuleCreationWizard: React.FC<ModuleCreationWizardProps> = ({
   const [activeStep, setActiveStep] = useState(0);
   const [moduleSize, setModuleSize] = useState({ width: 1, height: 1 });
   const [drawingElements, setDrawingElements] = useState<DrawingElement[]>([]);
-  const [canvasSVGData, setCanvasSVGData] = useState<string>('');
+  const [capturedSVG, setCapturedSVG] = useState<string>(''); // Store captured SVG
+
+  // Enhanced debugging for drawing elements changes
+  const handleDrawingElementsChange = useCallback((newElements: DrawingElement[]) => {
+    console.log('🎨 Drawing elements changed:', {
+      from: drawingElements.length,
+      to: newElements.length,
+      elements: newElements
+    });
+    setDrawingElements(newElements);
+  }, [drawingElements.length]);
   const [metadata, setMetadata] = useState<ModuleMetadata>({
     name: '',
     group: 'custom',
@@ -85,7 +162,50 @@ export const ModuleCreationWizard: React.FC<ModuleCreationWizardProps> = ({
   const { loadModules } = useAppStore();
   const drawingCanvasRef = useRef<{ exportAsImage: () => string | null; exportAsSVG: () => string | null } | null>(null);
 
-  const handleNext = () => {
+  // Debug ref changes
+  React.useEffect(() => {
+    console.log('🖼️ Drawing canvas ref changed:', {
+      isNull: drawingCanvasRef.current === null,
+      hasExportAsSVG: drawingCanvasRef.current?.exportAsSVG !== undefined,
+      methods: drawingCanvasRef.current ? Object.keys(drawingCanvasRef.current) : 'none'
+    });
+  }, [drawingCanvasRef.current]);
+
+  const handleNext = async () => {
+    // Capture SVG when leaving the drawing step (step 1)
+    if (activeStep === 1) {
+      console.log('🚀 Leaving drawing step - capturing SVG...');
+      console.log('🖼️ Canvas ref available:', !!drawingCanvasRef.current);
+      console.log('🎨 Current drawing elements in wizard state:', drawingElements.length);
+      console.log('🎨 Drawing elements data:', drawingElements);
+      
+      if (drawingCanvasRef.current && drawingCanvasRef.current.exportAsSVG) {
+        try {
+          const svgData = drawingCanvasRef.current.exportAsSVG();
+          console.log('✅ SVG captured successfully:', !!svgData);
+          console.log('SVG length:', svgData ? svgData.length : 0);
+          if (svgData) {
+            console.log('SVG preview (first 200 chars):', svgData.substring(0, 200));
+            setCapturedSVG(svgData);
+          }
+        } catch (error) {
+          console.error('❌ Failed to capture SVG:', error);
+        }
+      } else {
+        console.warn('⚠️ Canvas ref not available when leaving drawing step');
+        
+        // Fallback: Generate SVG manually from the drawing elements
+        if (drawingElements.length > 0) {
+          console.log('🔧 Attempting manual SVG generation from elements...');
+          const manualSVG = generateManualSVG(drawingElements, moduleSize);
+          if (manualSVG) {
+            console.log('✅ Manual SVG generated successfully');
+            setCapturedSVG(manualSVG);
+          }
+        }
+      }
+    }
+    
     setActiveStep((prevActiveStep) => prevActiveStep + 1);
   };
 
@@ -97,7 +217,7 @@ export const ModuleCreationWizard: React.FC<ModuleCreationWizardProps> = ({
     setActiveStep(0);
     setModuleSize({ width: 1, height: 1 });
     setDrawingElements([]);
-    setCanvasSVGData('');
+    setCapturedSVG(''); // Reset captured SVG
     setMetadata({
       name: '',
       group: 'custom',
@@ -125,23 +245,63 @@ export const ModuleCreationWizard: React.FC<ModuleCreationWizardProps> = ({
   const handleCreateModule = async () => {
     setIsCreating(true);
     try {
-      // Capture canvas SVG before saving
-      if (drawingCanvasRef.current && drawingCanvasRef.current.exportAsSVG) {
-        const svgData = drawingCanvasRef.current.exportAsSVG();
-        if (svgData) {
-          setCanvasSVGData(svgData);
+      // DETAILED DEBUGGING: Check drawing state
+      console.log('🚀 === STARTING MODULE CREATION ===');
+      console.log('📏 Module size:', moduleSize);
+      console.log('📝 Metadata:', metadata);
+      console.log('🎨 Drawing elements count:', drawingElements.length);
+      console.log('🎨 Drawing elements data:', JSON.stringify(drawingElements, null, 2));
+      console.log('🖼️ Canvas ref available:', !!drawingCanvasRef.current);
+      
+      // Log each individual drawing element for debugging
+      drawingElements.forEach((element, index) => {
+        console.log(`🎨 Element ${index}:`, {
+          id: element.id,
+          type: element.type,
+          hasPoints: !!element.points,
+          pointsLength: element.points?.length || 0,
+          hasCoordinates: !!(element.x !== undefined && element.y !== undefined),
+          stroke: element.stroke,
+          strokeWidth: element.strokeWidth
+        });
+      });
+
+      // Use pre-captured SVG data
+      console.log('📸 Using pre-captured SVG data...');
+      console.log('🎨 Captured SVG available:', !!capturedSVG);
+      console.log('🎨 Captured SVG length:', capturedSVG.length);
+      
+      if (capturedSVG) {
+        console.log('✅ Using captured SVG for upload');
+        console.log('SVG preview (first 200 chars):', capturedSVG.substring(0, 200));
+      } else {
+        console.warn('⚠️ No pre-captured SVG available - will generate from elements');
+        
+        // Fallback: try to generate SVG from elements if no captured SVG
+        if (drawingElements.length > 0) {
+          console.log('📝 Will generate fallback from drawing elements');
         }
       }
 
+      console.log('Calling saveModuleToGitHubCSV with:', {
+        hasMetadata: !!metadata,
+        hasModuleSize: !!moduleSize,
+        hasDrawingElements: drawingElements.length > 0,
+        hasSVGData: !!capturedSVG,
+        svgDataLength: capturedSVG.length
+      });
+
       // Save module to GitHub CSV with SVG icon
-      const success = await saveModuleToGitHubCSV({
+      const result = await saveModuleToGitHubCSV({
         metadata,
         moduleSize,
         drawingElements,
-        canvasSVGData: canvasSVGData || ''
+        canvasSVGData: capturedSVG // Use the captured SVG directly
       });
 
-      if (success) {
+      console.log('GitHub save result:', result);
+
+      if (result.success) {
         // Reload modules to include the new one in the sidebar
         await loadModules();
         
@@ -156,7 +316,7 @@ export const ModuleCreationWizard: React.FC<ModuleCreationWizardProps> = ({
           color: metadata.color,
           width: moduleSize.width.toString(),
           height: moduleSize.height.toString(),
-          thumbnail: '', // Could generate a thumbnail from the drawing
+          thumbnail: result.iconPath || '', // Use the uploaded SVG icon path
           cadUrl: '',
           description: metadata.description,
           defaultParams: JSON.stringify({
@@ -206,8 +366,7 @@ export const ModuleCreationWizard: React.FC<ModuleCreationWizardProps> = ({
             ref={drawingCanvasRef}
             moduleSize={moduleSize}
             elements={drawingElements}
-            onElementsChange={setDrawingElements}
-            onCanvasExport={setCanvasSVGData}
+            onElementsChange={handleDrawingElementsChange}
           />
         );
       case 2:
@@ -232,6 +391,7 @@ export const ModuleCreationWizard: React.FC<ModuleCreationWizardProps> = ({
               <Typography><strong>Group:</strong> {metadata.group}</Typography>
               <Typography><strong>Description:</strong> {metadata.description}</Typography>
               <Typography><strong>Drawing Elements:</strong> {drawingElements.length} element(s)</Typography>
+              <Typography><strong>SVG Icon:</strong> {capturedSVG ? `Ready (${capturedSVG.length} chars)` : 'Not captured'}</Typography>
               {metadata.linkUrl && <Typography><strong>Part Link:</strong> {metadata.linkUrl}</Typography>}
               {metadata.price && <Typography><strong>Price:</strong> €{metadata.price}</Typography>}
               {metadata.notification && (

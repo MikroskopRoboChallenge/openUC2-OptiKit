@@ -33,8 +33,16 @@ export function parseCSV(csvText: string): ModuleCSVRow[] {
 
 function addConfiguratorPrefix(path: string | undefined): string | undefined {
   if (!path) return path;
+  
+  // If the path starts with 'icons/' it's likely a user-created module from GitHub
+  // Convert it to the full GitHub raw URL
+  if (path.startsWith('icons/')) {
+    return `https://raw.githubusercontent.com/beniroquai/openUC2-OptiKit-Store/main/${path}`;
+  }
+  
   // Only add prefix if path is relative and not already prefixed
   if (path.startsWith('/configurator/')) return path;
+  if (path.startsWith('http://') || path.startsWith('https://')) return path;
   if (path.startsWith('/')) return '/configurator' + path;
   return '/configurator/' + path;
 }
