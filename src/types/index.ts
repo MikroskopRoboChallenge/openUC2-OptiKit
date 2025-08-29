@@ -139,11 +139,13 @@ export interface AppState {
   annotationMode: 'none' | 'line' | 'arrow' | 'text' | 'optical-axis';
   setupMetadata: SetupMetadata;
   // UI state
-  activeRightTab: 'layers' | 'properties' | 'bom' | 'annotations';
+  activeRightTab: 'layers' | 'properties' | 'bom' | 'annotations' | 'chat';
   notifications: Notification[];
   // Tutorial state
   tutorialCompleted: boolean;
   startupDialogClosed: boolean;
+  // Chat state
+  chat: ChatState;
 }
 
 export interface Command {
@@ -181,4 +183,27 @@ export interface CompactAnnotation {
 export interface CompactExport {
   m: CompactModule[];
   a?: CompactAnnotation[];
+}
+
+// Chat-related interfaces
+export interface ChatMessage {
+  id: string;
+  chatPartner: 'user' | 'bot';
+  message: string;
+  attachment?: string; // JSON string for configuration data
+  timestamp: string;
+  sessionId: string;
+}
+
+export interface ChatSession {
+  sessionId: string;
+  messages: ChatMessage[];
+  lastPolled: string;
+}
+
+export interface ChatState {
+  currentSession: ChatSession | null;
+  isLoading: boolean;
+  isSending: boolean;
+  error: string | null;
 }
