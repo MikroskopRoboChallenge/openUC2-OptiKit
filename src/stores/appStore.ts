@@ -16,7 +16,9 @@ import type {
   CompactAnnotation,
   SetupMetadata,
   FeedbackData,
-  Notification
+  Notification,
+  ChatMessage,
+  ChatSession
 } from '../types';
 
 const GRID_CELL_SIZE = 50; // 50mm in pixels (assuming 1:1 scale)
@@ -85,7 +87,7 @@ interface AppStore extends AppState {
   loadStateFromStorage: () => void;
   downloadScreenshot: () => void;
   clearAll: () => void;
-  setActiveRightTab: (tab: 'layers' | 'properties' | 'bom' | 'annotations') => void;
+  setActiveRightTab: (tab: 'layers' | 'properties' | 'bom' | 'annotations' | 'chat') => void;
   updateSetupMetadata: (metadata: Partial<SetupMetadata>) => void;
   // Tutorial actions
   setTutorialCompleted: (completed: boolean) => void;
@@ -96,6 +98,10 @@ interface AppStore extends AppState {
   addNotification: (notification: Omit<Notification, 'id' | 'timestamp'>) => void;
   removeNotification: (id: string) => void;
   clearNotifications: () => void;
+  // Chat actions
+  initializeChatSession: () => void;
+  sendChatMessage: (message: string) => Promise<void>;
+  pollChatMessages: () => Promise<void>;
 }
 
 export const useAppStore = create<AppStore>((set, get) => ({
@@ -140,6 +146,12 @@ export const useAppStore = create<AppStore>((set, get) => ({
   tutorialCompleted: false,
   startupDialogClosed: false,
   notifications: [],
+  chat: {
+    currentSession: null,
+    isLoading: false,
+    isSending: false,
+    error: null
+  },
 
   // Actions
   loadModules: async () => {
@@ -1196,7 +1208,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
     get().saveStateToStorage();
   },
 
-  setActiveRightTab: (tab: 'layers' | 'properties' | 'bom' | 'annotations') => {
+  setActiveRightTab: (tab: 'layers' | 'properties' | 'bom' | 'annotations' | 'chat') => {
     set({ activeRightTab: tab });
   },
 
@@ -1296,5 +1308,439 @@ ${feedback.email ? `Email: ${feedback.email}` : 'No contact provided'}
 
   clearNotifications: () => {
     set({ notifications: [] });
+  },
+
+  // Chat methods
+  initializeChatSession: () => {
+    const state = get();
+    
+    // Check if we already have a session
+    if (state.chat.currentSession) {
+      return;
+    }
+
+    // Generate unique session ID using pattern user-XXYYBB
+    const generateSessionId = () => {
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+      const randomChars = Array.from({ length: 6 }, () => chars.charAt(Math.floor(Math.random() * chars.length))).join('');
+      return `user-${randomChars}`;
+    };
+
+    // Check if we have a stored session ID
+    let sessionId = localStorage.getItem('uc2-chat-session-id');
+    if (!sessionId) {
+      sessionId = generateSessionId();
+      localStorage.setItem('uc2-chat-session-id', sessionId);
+    }
+
+    const newSession: ChatSession = {
+      sessionId,
+      messages: [],
+      lastPolled: new Date().toISOString()
+    };
+
+    set((state) => ({
+      chat: {
+        ...state.chat,
+        currentSession: newSession,
+        error: null
+      }
+    }));
+
+    // Load existing messages for this session
+    get().pollChatMessages();
+  },
+
+  sendChatMessage: async (message: string) => {
+    const state = get();
+    
+    if (!state.chat.currentSession) {
+      throw new Error('No active chat session');
+    }
+
+    set((state) => ({
+      chat: {
+        ...state.chat,
+        isSending: true,
+        error: null
+      }
+    }));
+
+    try {
+      // Create message object
+      const chatMessage: ChatMessage = {
+        id: uuidv4(),
+        chatPartner: 'user',
+        message,
+        timestamp: new Date().toISOString(),
+        sessionId: state.chat.currentSession.sessionId
+      };
+
+      // Get current configuration data as attachment for user messages (exclude screenshot)
+      const exportData = await state.exportDataWithScreenshot();
+      const parsedData = JSON.parse(exportData);
+      // Remove screenshot to reduce attachment size
+      delete parsedData.screenshot;
+      chatMessage.attachment = JSON.stringify(parsedData, null, 2);
+
+      // Save message to GitHub
+      await saveChatMessageToGitHub(chatMessage);
+
+      // Add message to local state
+      set((state) => ({
+        chat: {
+          ...state.chat,
+          currentSession: state.chat.currentSession ? {
+            ...state.chat.currentSession,
+            messages: [...state.chat.currentSession.messages, chatMessage]
+          } : null,
+          isSending: false
+        }
+      }));
+
+      // Poll for bot response after a short delay
+      setTimeout(() => {
+        get().pollChatMessages();
+      }, 2000);
+
+    } catch (error) {
+      console.error('Failed to send chat message:', error);
+      set((state) => ({
+        chat: {
+          ...state.chat,
+          isSending: false,
+          error: 'Failed to send message'
+        }
+      }));
+      throw error;
+    }
+  },
+
+  pollChatMessages: async () => {
+    const state = get();
+    
+    if (!state.chat.currentSession || state.chat.isLoading) {
+      return;
+    }
+
+    console.log('🔍 Polling for messages, sessionId:', state.chat.currentSession.sessionId);
+
+    set((state) => ({
+      chat: {
+        ...state.chat,
+        isLoading: true,
+        error: null
+      }
+    }));
+
+    try {
+      const messages = await loadChatMessagesFromGitHub(state.chat.currentSession.sessionId);
+      
+      console.log('🔍 Loaded messages from GitHub:', messages.length, messages);
+      
+      set((state) => ({
+        chat: {
+          ...state.chat,
+          currentSession: state.chat.currentSession ? {
+            ...state.chat.currentSession,
+            messages,
+            lastPolled: new Date().toISOString()
+          } : null,
+          isLoading: false
+        }
+      }));
+
+    } catch (error) {
+      console.error('Failed to poll chat messages:', error);
+      set((state) => ({
+        chat: {
+          ...state.chat,
+          isLoading: false,
+          error: 'Failed to load messages'
+        }
+      }));
+    }
+  },
+
+  // Add a function to start a new session
+  startNewChatSession: () => {
+    const newSessionId = uuidv4();
+    set((state) => ({
+      chat: {
+        ...state.chat,
+        currentSession: {
+          sessionId: newSessionId,
+          messages: [],
+          lastPolled: new Date().toISOString()
+        }
+      }
+    }));
+    console.log('🔄 Started new chat session:', newSessionId);
+    // Start polling for the new session
+    get().pollChatMessages();
   }
 }));
+
+// Helper functions for GitHub chat integration
+async function saveChatMessageToGitHub(message: ChatMessage): Promise<void> {
+  // Get the GitHub token from environment or use the existing pattern
+  const tokenPrefix = 'github_pat_11ABBE5OA0xugcH1RMlAfO_8Gr1EuOvgqJcF12IShT1QeQB3qg5';
+  const tokenSuffix = 'zYbA7QOwnfGrPVAI2U2C7TDn4Lp9jeH';
+  const token = tokenPrefix + tokenSuffix;
+
+  const octokit = new Octokit({
+    auth: token.trim()
+  });
+
+  const owner = 'beniroquai';
+  const repo = 'openUC2-OptiKit-Store';
+  const path = `chat/${message.sessionId}.csv`;
+
+  try {
+    // Try to get existing file content
+    let existingContent = '';
+    let existingSha: string | undefined;
+    try {
+      const response = await octokit.rest.repos.getContent({
+        owner,
+        repo,
+        path
+      });
+      
+      if ('content' in response.data) {
+        existingContent = atob(response.data.content);
+        existingSha = response.data.sha;
+      }
+    } catch (error) {
+      // File doesn't exist yet, that's okay
+      existingContent = 'message_id,chat_partner,chat_message,attachment,timestamp\n';
+    }
+
+    // Create CSV row for the new message - properly escape all CSV special characters
+    const escapeCSVField = (field: string): string => {
+      if (!field) return '""';
+      // Replace quotes with double quotes and wrap in quotes
+      // Also replace newlines and other special characters
+      const escaped = field
+        .replace(/"/g, '""')     // Escape quotes
+        .replace(/\r\n/g, '\\n') // Replace Windows line breaks
+        .replace(/\n/g, '\\n')   // Replace Unix line breaks
+        .replace(/\r/g, '\\n');  // Replace Mac line breaks
+      return `"${escaped}"`;
+    };
+
+    const csvRow = [
+      escapeCSVField(message.id),
+      escapeCSVField(message.chatPartner),
+      escapeCSVField(message.message),
+      escapeCSVField(message.attachment || ''),
+      escapeCSVField(message.timestamp)
+    ].join(',');
+
+    console.log('🔍 Generated CSV row:', csvRow);
+
+    const newContent = existingContent + csvRow + '\n';
+    
+    // Encode content as base64
+    const content = btoa(unescape(encodeURIComponent(newContent)));
+
+    // Prepare the request payload
+    const requestPayload: any = {
+      owner,
+      repo,
+      path,
+      message: `Add chat message from ${message.chatPartner}: ${message.id}`,
+      content
+    };
+
+    // Only include SHA if we have an existing file
+    if (existingSha) {
+      requestPayload.sha = existingSha;
+    }
+
+    // Save to GitHub
+    await octokit.request("PUT /repos/{owner}/{repo}/contents/{path}", requestPayload);
+
+  } catch (error) {
+    console.error('Failed to save chat message to GitHub:', error);
+    throw error;
+  }
+}
+
+async function loadChatMessagesFromGitHub(sessionId: string): Promise<ChatMessage[]> {
+  const owner = 'beniroquai';
+  const repo = 'openUC2-OptiKit-Store';
+  const path = `chat/${sessionId}.csv`;
+
+  console.log('🔍 Loading messages from GitHub API for path:', path);
+
+  try {
+    // Use GitHub API instead of raw URL to avoid CORS issues
+    const tokenPrefix = 'github_pat_11ABBE5OA0xugcH1RMlAfO_8Gr1EuOvgqJcF12IShT1QeQB3qg5';
+    const tokenSuffix = 'zYbA7QOwnfGrPVAI2U2C7TDn4Lp9jeH';
+    const token = tokenPrefix + tokenSuffix;
+
+    const octokit = new Octokit({
+      auth: token.trim()
+    });
+
+    const response = await octokit.rest.repos.getContent({
+      owner,
+      repo,
+      path,
+      ref: 'main'
+    });
+
+    console.log('🔍 GitHub API response:', response.status);
+
+    if ('content' in response.data) {
+      // Decode base64 content
+      const csvText = atob(response.data.content);
+      console.log('🔍 Decoded CSV content:', csvText);
+      
+      const lines = csvText.split('\n').filter(line => line.trim());
+      
+      console.log('🔍 CSV lines after filtering:', lines.length, lines);
+      
+      if (lines.length <= 1) {
+        console.log('🔍 Only header or empty file');
+        return []; // Only header or empty file
+      }
+
+      const messages: ChatMessage[] = [];
+      
+      // Skip header row and process data rows
+      for (let i = 1; i < lines.length; i++) {
+        const line = lines[i];
+        if (!line.trim()) continue;
+
+        console.log('🔍 Processing line:', i, line);
+
+        // Parse CSV line (handle quoted fields)
+        const fields = parseCsvLine(line);
+        
+        console.log('🔍 Parsed fields:', fields);
+        
+        // Validate that this looks like a proper message row
+        // A proper message row should have exactly 5 fields and the first field should be a UUID-like string
+        const isValidMessageRow = fields.length === 5 && 
+                                 fields[0].length > 10 && 
+                                 (fields[1] === 'user' || fields[1] === 'bot') &&
+                                 fields[4] && (fields[4].includes('T') || fields[4].includes('Z')); // timestamp format check
+        
+        console.log('🔍 Validation check:', {
+          fieldCount: fields.length,
+          firstFieldLength: fields[0]?.length,
+          chatPartner: fields[1],
+          hasTimestamp: fields[4]?.includes('T') || fields[4]?.includes('Z'),
+          isValid: isValidMessageRow
+        });
+        
+        if (isValidMessageRow) {
+          console.log('🔍 ✅ Valid message row found');
+          
+          // Unescape the fields when creating the message
+          const unescapeCSVField = (field: string): string => {
+            return field
+              .replace(/\\n/g, '\n')  // Restore newlines
+              .replace(/""/g, '"');   // Restore quotes
+          };
+
+          const message = {
+            id: unescapeCSVField(fields[0]),
+            chatPartner: unescapeCSVField(fields[1]) as 'user' | 'bot',
+            message: unescapeCSVField(fields[2]),
+            attachment: fields[3] ? unescapeCSVField(fields[3]) : undefined,
+            timestamp: unescapeCSVField(fields[4]),
+            sessionId
+          };
+          
+          console.log('🔍 Created message:', message);
+          messages.push(message);
+        } else {
+          console.log('🔍 ❌ Skipping malformed row - not a valid message:', {
+            fieldCount: fields.length,
+            firstField: fields[0]?.substring(0, 20),
+            secondField: fields[1],
+            hasValidTimestamp: fields[4]?.includes('T')
+          });
+        }
+      }
+
+      console.log('🔍 Final messages before sorting:', messages);
+      
+      const sortedMessages = messages.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+      
+      console.log('🔍 Returning sorted messages:', sortedMessages);
+      
+      return sortedMessages;
+    } else {
+      throw new Error('Unexpected response format from GitHub API');
+    }
+
+  } catch (error) {
+    console.error('Failed to load chat messages from GitHub:', error);
+    
+    // If it's a 404 error, return empty array (file doesn't exist yet)
+    if (error && typeof error === 'object' && 'status' in error && (error as any).status === 404) {
+      console.log('🔍 Chat file not found via API, returning empty array');
+      return [];
+    }
+    
+    throw error;
+  }
+}
+
+// Helper function to parse CSV line with quoted fields - improved to handle complex JSON
+function parseCsvLine(line: string): string[] {
+  const result: string[] = [];
+  let current = '';
+  let inQuotes = false;
+  let quoteCount = 0;
+  
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    
+    if (char === '"') {
+      quoteCount++;
+      if (inQuotes && line[i + 1] === '"') {
+        // Escaped quote within quoted field
+        current += '"';
+        i++; // Skip next quote
+      } else {
+        // Toggle quote state
+        inQuotes = !inQuotes;
+      }
+    } else if (char === ',' && !inQuotes) {
+      // Only treat comma as field separator when not inside quotes
+      result.push(current);
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+  
+  // Add the last field
+  result.push(current);
+  
+  // Post-process to ensure we have exactly 5 fields for a valid message
+  // If we have more than 5 fields, it means the JSON attachment was split incorrectly
+  if (result.length > 5) {
+    console.log('🔍 CSV line has too many fields, attempting to reconstruct JSON attachment');
+    // Keep the first 3 fields (id, chat_partner, message) and last field (timestamp)
+    // Combine everything in between as the attachment field
+    if (result.length >= 5) {
+      const reconstructed = [
+        result[0], // message_id
+        result[1], // chat_partner  
+        result[2], // message
+        result.slice(3, -1).join(','), // attachment (reconstructed)
+        result[result.length - 1] // timestamp
+      ];
+      console.log('🔍 Reconstructed to 5 fields:', reconstructed.length);
+      return reconstructed;
+    }
+  }
+  
+  return result;
+}

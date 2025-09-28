@@ -19,6 +19,7 @@ import { LayerPanel } from './LayerPanel';
 import { PropertyPanel } from './PropertyPanel';
 import { BOMPanel } from './BOMPanel';
 import { AnnotationPanel } from './AnnotationPanel';
+import { ChatPanel } from './ChatPanel';
 import { Toolbar } from './Toolbar';
 import { Tutorial } from './Tutorial';
 import { useAppStore } from '../stores/appStore';
@@ -188,6 +189,7 @@ export const Layout: React.FC = () => {
               <Tab label="Properties" value="properties" data-tour="properties-tab" />
               <Tab label="Annotations" value="annotations" data-tour="annotations-tab" />
               <Tab label="BOM/Quote" value="bom" data-tour="bom-tab" />
+              <Tab label="Chat" value="chat" data-tour="chat-tab" />
             </Tabs>
             
             <Box sx={{ flex: 1, overflow: 'auto', p: 2 }}>
@@ -195,6 +197,7 @@ export const Layout: React.FC = () => {
               {activeRightTab === 'properties' && <PropertyPanel />}
               {activeRightTab === 'annotations' && <AnnotationPanel />}
               {activeRightTab === 'bom' && <BOMPanel />}
+              {activeRightTab === 'chat' && <ChatPanel />}
             </Box>
           </Box>
         </Drawer>
