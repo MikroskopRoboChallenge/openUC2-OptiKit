@@ -213,22 +213,41 @@ export const ImSwitchConfigWizard: React.FC<ImSwitchConfigWizardProps> = ({
       let cleanedString = imSwitchString.trim();
       console.log('Original ImSwitch string:', cleanedString);
       
+      // Remove outer single quotes if they exist
+      if (cleanedString.startsWith("'") && cleanedString.endsWith("'")) {
+        cleanedString = cleanedString.slice(1, -1);
+      }
+      
       // Handle the specific format from CSV: """key"":{""prop"":""value""}
       // First remove the outer triple quotes if they exist
       if (cleanedString.startsWith('"""') && cleanedString.endsWith('"""')) {
         cleanedString = cleanedString.slice(3, -3);
       }
       
-      // Replace all instances of double quotes with single quotes
+      // Replace all instances of double-double quotes with single quotes
       // This handles the CSV escaping where " becomes ""
       cleanedString = cleanedString.replace(/""/g, '"');
+      
+      console.log('After quote processing:', cleanedString);
+      
+      // Handle incomplete JSON - add missing closing braces
+      let openBraces = 0;
+      for (let char of cleanedString) {
+        if (char === '{') openBraces++;
+        if (char === '}') openBraces--;
+      }
+      
+      // Add missing closing braces
+      for (let i = 0; i < openBraces; i++) {
+        cleanedString += '}';
+      }
       
       // Ensure it's wrapped in curly braces for valid JSON
       if (!cleanedString.startsWith('{')) {
         cleanedString = `{${cleanedString}}`;
       }
       
-      console.log('Cleaned ImSwitch string:', cleanedString);
+      console.log('Final cleaned string:', cleanedString);
       
       // Parse as JSON
       const parsed = JSON.parse(cleanedString);
@@ -237,7 +256,98 @@ export const ImSwitchConfigWizard: React.FC<ImSwitchConfigWizardProps> = ({
     } catch (error) {
       console.warn('Failed to parse ImSwitch data:', imSwitchString);
       console.warn('Parse error:', error);
-      return {};
+      console.warn('String that failed to parse:', imSwitchString);
+      
+      // Try alternative parsing approach
+      try {
+        console.log('Attempting alternative parsing...');
+        let altString = imSwitchString.trim();
+        
+        // Remove outer quotes (single or double)
+        if ((altString.startsWith("'") && altString.endsWith("'")) ||
+            (altString.startsWith('"') && altString.endsWith('"'))) {
+          altString = altString.slice(1, -1);
+        }
+        
+        // Replace triple quotes with single quotes first
+        altString = altString.replace(/"""/g, '"');
+        
+        // Replace double quotes with single quotes
+        altString = altString.replace(/""/g, '"');
+        
+        // Handle incomplete JSON - count braces and add missing ones
+        let openBraces = 0;
+        for (let char of altString) {
+          if (char === '{') openBraces++;
+          if (char === '}') openBraces--;
+        }
+        
+        // Add missing closing braces
+        for (let i = 0; i < openBraces; i++) {
+          altString += '}';
+        }
+        
+        // Wrap in braces if needed
+        if (!altString.startsWith('{')) {
+          altString = `{${altString}}`;
+        }
+        
+        console.log('Alternative cleaned string:', altString);
+        const altParsed = JSON.parse(altString);
+        console.log('Alternative parsing successful:', altParsed);
+        return altParsed;
+      } catch (altError) {
+        console.warn('Alternative parsing also failed:', altError);
+        
+        // Last resort: try to extract key-value pairs manually
+        try {
+          console.log('Attempting manual extraction...');
+          const result: any = {};
+          
+          // Look for patterns like "key":{...}
+          const patterns = [
+            /"""?([^"]+)"""?:\s*\{([^}]+(?:\{[^}]*\}[^}]*)*)\}/g,
+            /"([^"]+)":\s*\{([^}]+(?:\{[^}]*\}[^}]*)*)\}/g
+          ];
+          
+          let match;
+          for (const pattern of patterns) {
+            while ((match = pattern.exec(imSwitchString)) !== null) {
+              const key = match[1];
+              let value = match[2];
+              
+              // Count braces in the value to ensure proper closing
+              let openBraces = 1; // We already have the opening brace
+              for (let char of value) {
+                if (char === '{') openBraces++;
+                if (char === '}') openBraces--;
+              }
+              
+              // Add missing closing braces
+              for (let i = 0; i < openBraces; i++) {
+                value += '}';
+              }
+              
+              try {
+                const parsedValue = JSON.parse(`{${value}}`);
+                result[key] = parsedValue;
+                console.log(`Manually extracted ${key}:`, parsedValue);
+              } catch (e) {
+                console.warn(`Failed to parse manually extracted value for ${key}:`, value);
+              }
+            }
+          }
+          
+          if (Object.keys(result).length > 0) {
+            console.log('Manual extraction successful:', result);
+            return result;
+          }
+        } catch (manualError) {
+          console.warn('Manual extraction also failed:', manualError);
+        }
+        
+        return {};
+      }
     }
   };
 
@@ -280,6 +390,11 @@ export const ImSwitchConfigWizard: React.FC<ImSwitchConfigWizardProps> = ({
       if (parsedConfig.lasers) {
         Object.assign(mergedConfig.lasers!, parsedConfig.lasers);
         lasers.push(...Object.keys(parsedConfig.lasers));
+      }
+      if (parsedConfig.LEDs) {
+        Object.assign(mergedConfig.LEDs!, parsedConfig.LEDs);
+        // LEDs are also considered as light sources like lasers
+        lasers.push(...Object.keys(parsedConfig.LEDs));
       }
       if (parsedConfig.positioners) {
         Object.assign(mergedConfig.positioners!, parsedConfig.positioners);
