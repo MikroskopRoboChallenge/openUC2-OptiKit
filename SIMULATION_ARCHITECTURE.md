@@ -1,8 +1,8 @@
 # Ray Optics Simulation Architecture Decision
 
-## Decision: Hybrid Approach with ray-optics Library
+## Decision: Custom Lightweight Engine
 
-**Date**: December 2024  
+**Date**: December 2025 (Updated: January 2026)  
 **Status**: Implemented  
 **Author**: OpenUC2 Development Team
 
@@ -14,9 +14,24 @@ The OptiKit Configurator needed a 2D ray tracing capability to allow users to vi
 
 ## Decision
 
-We chose a **Hybrid Approach**:
-1. **Primary**: Use the **ray-optics library** (`/ray-optics-src/`) via the `RayOpticsAdapter`
-2. **Fallback**: Custom lightweight `SimulationEngine` for simple scenarios
+We chose a **Custom Engine Approach**:
+- **Primary**: Custom lightweight `SimulationEngine` built specifically for OptiKit
+- **Future**: The ray-optics library (`/ray-optics-src/`) is available but not currently integrated
+
+### Why Not ray-optics Library?
+
+The ray-optics library requires several additional dependencies and build configurations that are challenging to integrate with Vite:
+
+1. **Canvas Rendering**: ray-optics renders directly to HTML Canvas, but we need ray data for Konva overlay
+2. **Dependencies**: Requires `i18next`, `canvas2svg`, `seedrandom`, `bezier-js`, `file-saver`
+3. **Build Issues**: ES module imports from outside `/src/` cause Vite resolution errors
+4. **Data Extraction**: ray-optics doesn't expose ray path data easily - it's designed for rendering
+
+The custom `SimulationEngine` provides:
+- Direct ray path data for visualization
+- Simple integration with React/Konva
+- Type-safe TypeScript implementation
+- Easy parameter mapping from OptiKit modules
 
 ---
 
@@ -37,6 +52,7 @@ We chose a **Hybrid Approach**:
 │  │  - config (enabled, autoRun, maxRays, etc.)              │   │
 │  │  - rays[], detectorReadings[], elements[]                │   │
 │  │  - runSimulation(), stopSimulation(), setConfig()        │   │
+│  │  - Auto-triggers on placedModules changes                │   │
 │  └─────────────────────────────────────────────────────────┘   │
 │                            │                                    │
 │                            ▼                                    │
@@ -46,30 +62,22 @@ We chose a **Hybrid Approach**:
 │  │  - Handles fallback to main thread                       │   │
 │  │  - Provides async run() API with callbacks               │   │
 │  └─────────────────────────────────────────────────────────┘   │
-│                     │                   │                       │
-│           ┌─────────┴───────┐   ┌───────┴─────────┐            │
-│           ▼                 ▼   ▼                 ▼            │
-│  ┌────────────────┐  ┌─────────────────────────────────┐       │
-│  │ SimulationEngine│  │     RayOpticsAdapter.ts        │       │
-│  │ (Custom/Simple) │  │   (Full ray-optics library)    │       │
-│  └────────────────┘  └─────────────────────────────────┘       │
-│                                    │                            │
-└────────────────────────────────────┼────────────────────────────┘
-                                     │ imports
-                                     ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    /ray-optics-src/core/                        │
-├─────────────────────────────────────────────────────────────────┤
-│  ├── Scene.js          - Optical scene management               │
-│  ├── Simulator.js      - Ray tracing simulation engine          │
-│  ├── Editor.js         - Scene editing capabilities             │
-│  ├── geometry.js       - 2D geometry operations                 │
-│  └── sceneObjs/        - Optical element implementations        │
-│      ├── lightSource/  - SingleRay, PointSource, Beam           │
-│      ├── mirror/       - Mirror, BeamSplitter, ArcMirror        │
-│      ├── glass/        - IdealLens, SphericalLens, Glass        │
-│      ├── blocker/      - Blocker, Aperture                      │
-│      └── other/        - Detector, Ruler, etc.                  │
+│                            │                                    │
+│                            ▼                                    │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │              SimulationEngine.ts (Custom)                │   │
+│  │  - 2D geometric ray tracing                              │   │
+│  │  - Lens refraction with principal plane offset           │   │
+│  │  - Mirror/beamsplitter reflection                        │   │
+│  │  - Aperture blocking                                     │   │
+│  │  - Detector hit detection                                │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                                                                 │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │              RayOpticsAdapter.ts (Disabled)              │   │
+│  │  - Adapter for ray-optics library (not currently used)   │   │
+│  │  - Available at /ray-optics-src/ for future integration  │   │
+│  └─────────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────────┘
 ```
 

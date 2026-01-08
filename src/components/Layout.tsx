@@ -183,8 +183,18 @@ export const Layout: React.FC = () => {
             <Tabs 
               value={activeRightTab} 
               onChange={(_, newValue) => setActiveRightTab(newValue)}
-              variant="fullWidth"
-              sx={{ borderBottom: 1, borderColor: 'divider' }}
+              variant="scrollable"
+              scrollButtons="auto"
+              allowScrollButtonsMobile
+              sx={{ 
+                borderBottom: 1, 
+                borderColor: 'divider',
+                minHeight: 48,
+                '& .MuiTab-root': {
+                  minWidth: 'auto',
+                  px: 2,
+                }
+              }}
             >
               <Tab label="Layers" value="layers" data-tour="layers-tab" />
               <Tab label="Properties" value="properties" data-tour="properties-tab" />

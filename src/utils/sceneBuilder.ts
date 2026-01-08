@@ -153,13 +153,21 @@ export function buildOpticalElement(
   const simModel = getSimulationModel(module.moduleId);
   if (!simModel) return null;
   
+  // Skip compound elements - they are handled separately
+  if (simModel.elementType === 'compound') return null;
+  
   const center = getModuleCenterSimCoords(module, definition, config.gridToSimScale);
   
-  // Handle special case for mirrors with angle parameter
+  // Apply rotation offset from simulation model (fixes LED, beamsplitter, objective orientation)
   let effectiveRotation = module.rotation;
+  if (simModel.rotationOffset) {
+    effectiveRotation = (module.rotation + simModel.rotationOffset) % 360;
+  }
+  
+  // Handle special case for mirrors with angle parameter
   if (simModel.elementType === 'mirror' && module.params?.angle !== undefined) {
     // For mirrors, the angle parameter typically means the mirror surface angle
-    effectiveRotation = (module.rotation + (module.params.angle as number)) % 360;
+    effectiveRotation = (effectiveRotation + (module.params.angle as number)) % 360;
   }
   
   const element: OpticalElement = {
@@ -172,6 +180,58 @@ export function buildOpticalElement(
   };
   
   return element;
+}
+
+/**
+ * Build compound elements (modules with multiple optical elements like fiber combiner)
+ */
+export function buildCompoundElements(
+  module: PlacedModule,
+  definition: ModuleDefinition,
+  config: SimulationConfig
+): OpticalElement[] {
+  const simModel = getSimulationModel(module.moduleId);
+  if (!simModel || simModel.elementType !== 'compound' || !simModel.compoundElements) {
+    return [];
+  }
+  
+  const elements: OpticalElement[] = [];
+  const center = getModuleCenterSimCoords(module, definition, config.gridToSimScale);
+  const rotRad = ((module.rotation + (simModel.rotationOffset || 0)) * Math.PI) / 180;
+  
+  simModel.compoundElements.forEach((compEl, idx) => {
+    // Rotate offset by module rotation
+    const rotatedOffsetX = compEl.offsetX * Math.cos(rotRad) - compEl.offsetY * Math.sin(rotRad);
+    const rotatedOffsetY = compEl.offsetX * Math.sin(rotRad) + compEl.offsetY * Math.cos(rotRad);
+    
+    // Merge default params with component-specific params
+    const mergedParams = { ...simModel.defaultParams, ...compEl.params };
+    
+    // Apply module params overrides
+    if (module.params) {
+      for (const [key, value] of Object.entries(module.params)) {
+        if (value !== undefined) {
+          (mergedParams as Record<string, unknown>)[key] = value;
+        }
+      }
+    }
+    
+    const element: OpticalElement = {
+      id: `sim-${module.id}-${idx}`,
+      moduleInstanceId: module.id,
+      type: compEl.type,
+      position: {
+        x: center.x + rotatedOffsetX,
+        y: center.y + rotatedOffsetY
+      },
+      rotation: (module.rotation + (simModel.rotationOffset || 0)) % 360,
+      params: mergedParams as OpticalElementParams
+    };
+    
+    elements.push(element);
+  });
+  
+  return elements;
 }
 
 /**
@@ -212,9 +272,25 @@ export function buildScene(
       continue;
     }
     
+    const simModel = getSimulationModel(module.moduleId);
+    
+    // Handle compound elements (e.g., fiber combiner)
+    if (simModel?.elementType === 'compound') {
+      const compoundEls = buildCompoundElements(module, definition, config);
+      for (const el of compoundEls) {
+        elements.push(el);
+        if (el.type === 'laser' || el.type === 'led') {
+          sources.push(el);
+        } else if (el.type === 'detector') {
+          detectors.push(el);
+        }
+      }
+      continue;
+    }
+    
     const element = buildOpticalElement(module, definition, config);
     if (!element) {
-      warnings.push(`Failed to build optical element for: ${definition.name}`);
+      // Could be a compound element already handled, skip silently
       continue;
     }
     

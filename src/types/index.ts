@@ -400,6 +400,7 @@ export interface OpticalElementParams {
   
   // Lens parameters
   focalLength?: number;      // mm (positive = converging, negative = diverging)
+  principalPlaneOffset?: number; // mm offset of principal plane from center
   
   // Mirror parameters
   curvature?: number;        // 1/radius, 0 = flat
@@ -414,6 +415,8 @@ export interface OpticalElementParams {
   
   // Source parameters (laser/led)
   wavelength?: number;       // nm
+  wavelength1?: number;      // nm (for dual-wavelength sources like fiber combiner)
+  wavelength2?: number;      // nm (for dual-wavelength sources like fiber combiner)
   divergence?: number;       // Half-angle in degrees (0 = collimated)
   power?: number;            // mW
   rayCount?: number;         // Number of rays to emit
@@ -468,14 +471,22 @@ export interface OpticalPort {
  * Simulation model attached to a module definition
  */
 export interface ModuleSimulationModel {
-  elementType: OpticalElementType;
+  elementType: OpticalElementType | 'compound';
   defaultParams: Partial<OpticalElementParams>;
   ports?: OpticalPort[];
+  rotationOffset?: number;   // Degrees to add to module rotation for simulation
   parameterMappings?: {
     // Maps module defaultParams to simulation params
     // e.g., { 'focalLength': 'focalLength' }
     [moduleParam: string]: keyof OpticalElementParams;
   };
+  // For compound elements (e.g., fiber combiner with multiple sources)
+  compoundElements?: Array<{
+    type: OpticalElementType;
+    offsetX: number;         // Offset from module center in mm
+    offsetY: number;
+    params: Partial<OpticalElementParams>;
+  }>;
 }
 
 /**
@@ -592,6 +603,7 @@ export const MODULE_SIMULATION_MODELS: Record<string, ModuleSimulationModel> = {
   'beamsplitter-1x1': {
     elementType: 'beamsplitter',
     defaultParams: { splitRatio: 0.5, aperture: 25, angle: 45 },
+    rotationOffset: 90, // Beamsplitter drawing is rotated 90° from simulation
     parameterMappings: { 
       'splitRatio': 'splitRatio',
       'angle': 'angle'
@@ -654,6 +666,7 @@ export const MODULE_SIMULATION_MODELS: Record<string, ModuleSimulationModel> = {
   'led-470nm': {
     elementType: 'led',
     defaultParams: { wavelength: 470, divergence: 30, beamDiameter: 5, rayCount: 7, power: 1 },
+    rotationOffset: 180, // LED drawing faces opposite to emission direction
     parameterMappings: { 
       'wavelength': 'wavelength', 
       'divergence': 'divergence', 
@@ -665,6 +678,7 @@ export const MODULE_SIMULATION_MODELS: Record<string, ModuleSimulationModel> = {
   'led-530nm': {
     elementType: 'led',
     defaultParams: { wavelength: 530, divergence: 30, beamDiameter: 5, rayCount: 7, power: 1 },
+    rotationOffset: 180, // LED drawing faces opposite to emission direction
     parameterMappings: { 
       'wavelength': 'wavelength', 
       'divergence': 'divergence', 
@@ -676,6 +690,7 @@ export const MODULE_SIMULATION_MODELS: Record<string, ModuleSimulationModel> = {
   'led-625nm': {
     elementType: 'led',
     defaultParams: { wavelength: 625, divergence: 30, beamDiameter: 5, rayCount: 7, power: 1 },
+    rotationOffset: 180, // LED drawing faces opposite to emission direction
     parameterMappings: { 
       'wavelength': 'wavelength', 
       'divergence': 'divergence', 
@@ -725,14 +740,80 @@ export const MODULE_SIMULATION_MODELS: Record<string, ModuleSimulationModel> = {
   },
   'objective-4x-1x1': {
     elementType: 'lens',
-    defaultParams: { focalLength: 40, aperture: 8 }
+    defaultParams: { focalLength: 40, aperture: 8, principalPlaneOffset: 0 },
+    rotationOffset: 90, // Objective drawing is rotated 90° from optical axis
+    parameterMappings: { 'focalLength': 'focalLength', 'principalPlaneOffset': 'principalPlaneOffset' }
   },
   'objective-10x-1x1': {
     elementType: 'lens',
-    defaultParams: { focalLength: 16, aperture: 8 }
+    defaultParams: { focalLength: 16, aperture: 8, principalPlaneOffset: 0 },
+    rotationOffset: 90, // Objective drawing is rotated 90° from optical axis
+    parameterMappings: { 'focalLength': 'focalLength', 'principalPlaneOffset': 'principalPlaneOffset' }
   },
   'objective-20x-1x1': {
     elementType: 'lens',
-    defaultParams: { focalLength: 8, aperture: 6 }
+    defaultParams: { focalLength: 8, aperture: 6, principalPlaneOffset: 0 },
+    rotationOffset: 90, // Objective drawing is rotated 90° from optical axis
+    parameterMappings: { 'focalLength': 'focalLength', 'principalPlaneOffset': 'principalPlaneOffset' }
+  },
+  // Torch as point light source
+  'torch-1x1': {
+    elementType: 'led',
+    defaultParams: { wavelength: 550, divergence: 60, beamDiameter: 10, rayCount: 9, power: 1 },
+    rotationOffset: 180,
+    parameterMappings: { 
+      'wavelength': 'wavelength', 
+      'divergence': 'divergence', 
+      'rayCount': 'rayCount'
+    }
+  },
+  // Screen Holder as detector
+  'screenholder-1x1': {
+    elementType: 'detector',
+    defaultParams: { width: 50, height: 50, aperture: 50 }
+  },
+  // Fiber-Coupled Single-Mode Laser as point source
+  'laser-fcsm-1x1': {
+    elementType: 'led', // Point source behavior
+    defaultParams: { wavelength: 635, divergence: 7, beamDiameter: 1, rayCount: 7, power: 5 },
+    rotationOffset: 180,
+    parameterMappings: { 
+      'wavelength_nm': 'wavelength',
+      'outputPower_mW': 'power',
+      'beamDiameter_mm': 'beamDiameter',
+      'NA': 'divergence'
+    }
+  },
+  // Fiber Combiner: compound element (handled specially in sceneBuilder)
+  'fiber-combiner': {
+    elementType: 'compound',
+    defaultParams: { 
+      wavelength1: 488, 
+      wavelength2: 635, 
+      splitRatio: 0.5,
+      divergence: 7,
+      rayCount: 5
+    },
+    compoundElements: [
+      { type: 'led', offsetX: -20, offsetY: -20, params: { wavelength: 488 } },
+      { type: 'led', offsetX: -20, offsetY: 20, params: { wavelength: 635 } },
+      { type: 'beamsplitter', offsetX: 0, offsetY: 0, params: { splitRatio: 0.5, angle: 45 } }
+    ]
+  },
+  // USB Camera with tube lens (Daheng) - lens + detector compound
+  'camera-usb-daheng-tubelens': {
+    elementType: 'compound',
+    defaultParams: { 
+      focalLength: 50, 
+      width: 12, 
+      height: 8,
+      aperture: 25
+    },
+    rotationOffset: 90, // Sensor rotated 90°
+    compoundElements: [
+      { type: 'lens', offsetX: -25, offsetY: 0, params: { focalLength: 50, aperture: 25 } },
+      { type: 'detector', offsetX: 25, offsetY: 0, params: { width: 12, height: 8 } }
+    ],
+    parameterMappings: { 'focalLength': 'focalLength' }
   }
 };

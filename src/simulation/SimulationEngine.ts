@@ -447,17 +447,27 @@ function findNearestIntersection(
 
 /**
  * Apply thin lens transformation to a ray direction
+ * Supports principal plane offset for more accurate lens modeling
  */
 function applyLensRefraction(
   ray: Ray,
   intersection: Intersection
 ): Vec2 {
   const focalLength = intersection.element.params.focalLength || 100;
+  const principalPlaneOffset = intersection.element.params.principalPlaneOffset || 0;
   
-  // Calculate deflection based on distance from optical axis
-  const toCenter = vec2Sub(intersection.point, intersection.element.position);
+  // Calculate effective lens position with principal plane offset
   const opticalAxis = vec2Rotate({ x: 1, y: 0 }, intersection.element.rotation);
   const perpAxis = vec2Perpendicular(opticalAxis);
+  
+  // Effective lens center accounting for principal plane offset
+  const effectiveCenter: SimPoint = {
+    x: intersection.element.position.x + opticalAxis.x * principalPlaneOffset,
+    y: intersection.element.position.y + opticalAxis.y * principalPlaneOffset
+  };
+  
+  // Calculate deflection based on distance from optical axis at effective center
+  const toCenter = vec2Sub(intersection.point, effectiveCenter);
   
   // Height from optical axis
   const height = vec2Dot(toCenter, perpAxis);
@@ -467,6 +477,23 @@ function applyLensRefraction(
   
   // Apply deflection to incoming direction
   return vec2Normalize(vec2Rotate(ray.direction, deflectionAngle));
+}
+
+/**
+ * Check if a ray passes through the clear aperture of a lens
+ * Returns true if ray is blocked (outside aperture)
+ */
+function isBlockedByLensAperture(
+  intersection: Intersection
+): boolean {
+  const aperture = intersection.element.params.aperture || 25;
+  const halfAperture = aperture / 2;
+  
+  const perpAxis = vec2Perpendicular(vec2Rotate({ x: 1, y: 0 }, intersection.element.rotation));
+  const toCenter = vec2Sub(intersection.point, intersection.element.position);
+  const lateralDist = Math.abs(vec2Dot(toCenter, perpAxis));
+  
+  return lateralDist > halfAperture;
 }
 
 /**
@@ -702,6 +729,19 @@ export function runSimulation(
     
     switch (element.type) {
       case 'lens': {
+        // Check if ray is blocked by lens aperture
+        if (isBlockedByLensAperture(intersection)) {
+          rays.push({
+            id: ray.id,
+            sourceId,
+            segments,
+            wavelength: ray.wavelength,
+            terminated: true,
+            terminationReason: 'absorbed'
+          });
+          break;
+        }
+        
         // Refract through lens
         const newDirection = applyLensRefraction(ray, intersection);
         const newRay: Ray = {
