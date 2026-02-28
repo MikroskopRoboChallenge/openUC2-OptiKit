@@ -122,7 +122,7 @@ export const Layout: React.FC = () => {
       )}
       
       {/* Main Layout */}
-      <Box sx={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+      <Box sx={{ display: 'flex', flex: 1, overflow: 'hidden', minHeight: 0 }}>
         {/* Left Sidebar - Parts Library */}
         <Drawer
           variant={isMobile ? "temporary" : "persistent"}

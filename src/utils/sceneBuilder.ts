@@ -163,12 +163,8 @@ export function buildOpticalElement(
   if (simModel.rotationOffset) {
     effectiveRotation = (module.rotation + simModel.rotationOffset) % 360;
   }
-  
-  // Handle special case for mirrors with angle parameter
-  if (simModel.elementType === 'mirror' && module.params?.angle !== undefined) {
-    // For mirrors, the angle parameter typically means the mirror surface angle
-    effectiveRotation = (effectiveRotation + (module.params.angle as number)) % 360;
-  }
+  // NOTE: Mirror surface angle (params.angle) is now consumed directly inside
+  // rayMirrorIntersection in SimulationEngine.ts for a cleaner separation of concerns.
   
   const element: OpticalElement = {
     id: `sim-${module.id}`,
@@ -329,6 +325,8 @@ export function getElementTypeName(type: string): string {
     detector: 'Detector',
     aperture: 'Aperture',
     filter: 'Filter',
+    fluorescent: 'Fluorescent Sample',
+    aquarium: 'Aquarium',
     grating: 'Grating'
   };
   return names[type] || type;
@@ -362,7 +360,8 @@ export function getDefaultSimulationConfig(): SimulationConfig {
     wavelength: 532,
     showRays: true,
     showDetectorReadings: true,
-    rayBrightness: 0.8,
+    showPhysicalIcons: false, // Off by default – toggle in simulation panel
+    rayBrightness: 1.5,
     rayColorMode: 'wavelength',
     gridToSimScale: GRID_CELL_SIZE_MM
   };

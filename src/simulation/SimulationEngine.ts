@@ -231,6 +231,9 @@ function rayLensIntersection(
 
 /**
  * Calculate ray intersection with a mirror
+ * Uses params.angle (degrees from +X of horizontal) for surface orientation.
+ * angle=45 → redirects +X beam to +Y (standard diagonal mirror).
+ * angle=90 → vertical surface, retro-reflects +X beams.
  */
 function rayMirrorIntersection(
   ray: Ray,
@@ -239,9 +242,11 @@ function rayMirrorIntersection(
   const aperture = element.params.aperture || 25;
   const halfAperture = aperture / 2;
   
-  // Mirror surface direction based on rotation
-  // Default mirror at 45° reflects +x to +y
-  const mirrorDir = vec2Rotate({ x: 0, y: 1 }, element.rotation);
+  // Mirror surface direction: surface runs in direction (rotation - mirrorAngle) from +X.
+  // With default angle=-45, surface = rotate(1,0, rotation+45) = '/' shape, which
+  // reflects a downward (+Y screen) beam to the LEFT (-X) as physically expected.
+  const mirrorAngle = element.params.angle ?? -45;
+  const mirrorDir = vec2Rotate({ x: 1, y: 0 }, element.rotation - mirrorAngle);
   
   const lineStart: SimPoint = {
     x: element.position.x - mirrorDir.x * halfAperture,
@@ -430,6 +435,12 @@ function findNearestIntersection(
       case 'filter':
         intersection = rayLensIntersection(ray, element);
         break;
+      case 'fluorescent':
+        intersection = rayLensIntersection(ray, element); // Use lens plane geometry
+        break;
+      case 'aquarium':
+        intersection = rayLensIntersection(ray, element); // Use lens plane geometry
+        break;
       // Sources don't block rays
       case 'laser':
       case 'led':
@@ -446,37 +457,59 @@ function findNearestIntersection(
 }
 
 /**
- * Apply thin lens transformation to a ray direction
- * Supports principal plane offset for more accurate lens modeling
+ * Apply thin lens transformation to a ray direction.
+ * Correctly handles principal plane offset by tracing the incoming ray to the
+ * principal plane, computing height there, and emitting the refracted ray from
+ * the principal plane position (proper thick-lens / objective model).
+ *
+ * @returns new direction AND new ray origin (at principal plane)
  */
 function applyLensRefraction(
   ray: Ray,
   intersection: Intersection
-): Vec2 {
+): { direction: Vec2; origin: SimPoint } {
   const focalLength = intersection.element.params.focalLength || 100;
   const principalPlaneOffset = intersection.element.params.principalPlaneOffset || 0;
-  
-  // Calculate effective lens position with principal plane offset
+
   const opticalAxis = vec2Rotate({ x: 1, y: 0 }, intersection.element.rotation);
   const perpAxis = vec2Perpendicular(opticalAxis);
-  
-  // Effective lens center accounting for principal plane offset
-  const effectiveCenter: SimPoint = {
-    x: intersection.element.position.x + opticalAxis.x * principalPlaneOffset,
-    y: intersection.element.position.y + opticalAxis.y * principalPlaneOffset
-  };
-  
-  // Calculate deflection based on distance from optical axis at effective center
-  const toCenter = vec2Sub(intersection.point, effectiveCenter);
-  
-  // Height from optical axis
-  const height = vec2Dot(toCenter, perpAxis);
-  
-  // Deflection angle (paraxial approximation: θ = -h/f)
-  const deflectionAngle = (-height / focalLength) * (180 / Math.PI);
-  
-  // Apply deflection to incoming direction
-  return vec2Normalize(vec2Rotate(ray.direction, deflectionAngle));
+
+  // Default: thin lens — ray bends at the physical surface
+  let principalPlaneOrigin: SimPoint = intersection.point;
+  let heightAtPrincipalPlane: number;
+
+  if (Math.abs(principalPlaneOffset) > EPSILON) {
+    // Advance the incoming ray from the physical lens surface to the principal plane.
+    // The principal plane lies at axial distance principalPlaneOffset from element center.
+    // intersection.point is already on the lens surface (same axial position as element.position),
+    // so we need to advance by principalPlaneOffset along the optical axis via the ray slope.
+    const rayAxial = vec2Dot(ray.direction, opticalAxis);
+    if (Math.abs(rayAxial) > EPSILON) {
+      const advanceDist = principalPlaneOffset / rayAxial;
+      principalPlaneOrigin = {
+        x: intersection.point.x + ray.direction.x * advanceDist,
+        y: intersection.point.y + ray.direction.y * advanceDist
+      };
+    }
+  }
+
+  // Height is measured as perpendicular offset from the element's optical axis
+  heightAtPrincipalPlane = vec2Dot(
+    vec2Sub(principalPlaneOrigin, intersection.element.position),
+    perpAxis
+  );
+
+  // Paraxial lens equation: deflection = −h / f  (result in radians, convert to degrees)
+  // The sign of the deflection must account for the propagation direction:
+  // a converging lens should converge rays regardless of whether they enter
+  // from the left or the right.  Flip sign when the ray travels against the
+  // optical axis so that the focal power is direction-independent.
+  const rayAxial = vec2Dot(ray.direction, opticalAxis);
+  const dirSign = rayAxial >= 0 ? 1 : -1;
+  const deflectionAngle = dirSign * (-heightAtPrincipalPlane / focalLength) * (180 / Math.PI);
+  const newDirection = vec2Normalize(vec2Rotate(ray.direction, deflectionAngle));
+
+  return { direction: newDirection, origin: principalPlaneOrigin };
 }
 
 /**
@@ -742,11 +775,11 @@ export function runSimulation(
           break;
         }
         
-        // Refract through lens
-        const newDirection = applyLensRefraction(ray, intersection);
+        // Refract through lens — principal plane model returns new origin + direction
+        const { direction: newDirection, origin: lensOrigin } = applyLensRefraction(ray, intersection);
         const newRay: Ray = {
           ...ray,
-          origin: intersection.point,
+          origin: lensOrigin,
           direction: newDirection,
           bounceCount: ray.bounceCount + 1,
           totalDistance: ray.totalDistance + intersection.distance
@@ -831,8 +864,26 @@ export function runSimulation(
       }
       
       case 'filter': {
-        // Apply transmission loss
-        const transmission = element.params.transmission || 0.5;
+        // Wavelength-selective bandpass filter
+        const bandpassCenter = element.params.bandpassCenter;
+        const bandpassWidth = element.params.bandpassWidth;
+
+        if (bandpassCenter !== undefined && bandpassWidth !== undefined) {
+          const halfBW = bandpassWidth / 2;
+          const inPass = Math.abs(ray.wavelength - bandpassCenter) <= halfBW;
+          if (!inPass) {
+            // Ray blocked outside passband
+            rays.push({
+              id: ray.id, sourceId, segments,
+              wavelength: ray.wavelength, terminated: true,
+              terminationReason: 'absorbed'
+            });
+            break;
+          }
+        }
+
+        // Apply in-band transmission loss
+        const transmission = element.params.transmission || 0.9;
         const newRay: Ray = {
           ...ray,
           origin: intersection.point,
@@ -841,6 +892,77 @@ export function runSimulation(
           totalDistance: ray.totalDistance + intersection.distance
         };
         rayQueue.push({ ray: newRay, segments: [...segments], sourceId });
+        break;
+      }
+
+      case 'fluorescent': {
+        // Fluorescent sample: absorb excitation wavelength, emit at emission wavelength
+        const excitationWL = element.params.excitationWavelength || 488;
+        const excBW = element.params.excitationBandwidth || 50;
+        const emissionWL = element.params.emissionWavelength || 525;
+        const conversionEff = element.params.conversionEfficiency || 0.5;
+        const numEmissionRays = element.params.rayCount || 8;
+
+        const isExcited = Math.abs(ray.wavelength - excitationWL) <= excBW / 2;
+
+        if (!isExcited) {
+          // Non-excitation wavelength passes through
+          rayQueue.push({
+            ray: { ...ray, origin: intersection.point, bounceCount: ray.bounceCount + 1, totalDistance: ray.totalDistance + intersection.distance },
+            segments: [...segments], sourceId
+          });
+          break;
+        }
+
+        // Excitation ray is absorbed
+        rays.push({
+          id: ray.id, sourceId, segments,
+          wavelength: ray.wavelength, terminated: true,
+          terminationReason: 'absorbed'
+        });
+
+        // Emit isotropic fluorescence at emission wavelength
+        for (let fi = 0; fi < numEmissionRays; fi++) {
+          const emAngle = (fi / numEmissionRays) * 360;
+          const emDir = vec2Rotate({ x: 1, y: 0 }, emAngle);
+          const emRay: Ray = {
+            origin: intersection.point,
+            direction: emDir,
+            wavelength: emissionWL,
+            intensity: (ray.intensity * conversionEff) / numEmissionRays,
+            id: uuidv4(),
+            bounceCount: ray.bounceCount + 1,
+            totalDistance: ray.totalDistance + intersection.distance
+          };
+          rayQueue.push({ ray: emRay, segments: [], sourceId });
+        }
+        break;
+      }
+
+      case 'aquarium': {
+        // Aquarium blocks rays in the filled half of its volume.
+        // Fill level is from one side: fillFraction=0.5 → bottom half blocked.
+        const fillFraction = element.params.fillFraction || 0.5;
+        const perpAxis = vec2Perpendicular(vec2Rotate({ x: 1, y: 0 }, element.rotation));
+        const halfSize = (element.params.aperture || 50) / 2;
+        const toHit = vec2Sub(intersection.point, element.position);
+        const lateralPos = vec2Dot(toHit, perpAxis); // signed offset from center
+        // Normalise to [0,1]: 0 = one edge, 1 = other edge
+        const relPos = (lateralPos + halfSize) / (halfSize * 2);
+        const inFill = relPos < fillFraction;
+
+        if (inFill) {
+          rays.push({
+            id: ray.id, sourceId, segments,
+            wavelength: ray.wavelength, terminated: true,
+            terminationReason: 'absorbed'
+          });
+        } else {
+          rayQueue.push({
+            ray: { ...ray, origin: intersection.point, bounceCount: ray.bounceCount + 1, totalDistance: ray.totalDistance + intersection.distance },
+            segments: [...segments], sourceId
+          });
+        }
         break;
       }
       

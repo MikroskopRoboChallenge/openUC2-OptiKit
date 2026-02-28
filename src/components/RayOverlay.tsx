@@ -64,22 +64,22 @@ export const RayOverlay: React.FC<RayOverlayProps> = ({ viewport, gridCellSize }
           config.rayColorMode
         );
         
-        // Calculate opacity based on intensity and config
-        const opacity = Math.min(1, segment.intensity * config.rayBrightness);
+        // Calculate opacity based on intensity and config — ensure minimum visibility
+        const opacity = Math.max(0.35, Math.min(1, segment.intensity * config.rayBrightness));
         
         lines.push(
           <Line
             key={`ray-${rayIndex}-${segIndex}`}
             points={[start.x, start.y, end.x, end.y]}
             stroke={color}
-            strokeWidth={2 / viewport.zoom}
+            strokeWidth={Math.max(2.5, 3 / viewport.zoom)}
             opacity={opacity}
             lineCap="round"
             lineJoin="round"
             // Add glow effect for better visibility
             shadowColor={color}
-            shadowBlur={4 / viewport.zoom}
-            shadowOpacity={0.5}
+            shadowBlur={6 / viewport.zoom}
+            shadowOpacity={0.7}
           />
         );
       });

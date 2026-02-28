@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Stage, Layer, Group, Rect } from 'react-konva';
+import { ElementShape } from './PhysicalModuleOverlay';
 import {
   Box,
   TextField,
@@ -15,16 +17,84 @@ import {
   Button,
   Divider,
   Tabs,
-  Tab
+  Tab,
+  Tooltip,
+  IconButton
 } from '@mui/material';
 import {
   Search as SearchIcon,
   DragIndicator as DragIcon,
-  Add as AddIcon
+  Add as AddIcon,
+  Image as ImageIcon,
+  Biotech as PhysicsIcon
 } from '@mui/icons-material';
 import { useAppStore } from '../stores/appStore';
 import { ModuleCreationWizard } from './ModuleCreationWizard';
-import type { ModuleDefinition } from '../types';
+import { MODULE_SIMULATION_MODELS } from '../types';
+import type { ModuleDefinition, OpticalElement, OpticalElementType } from '../types';
+
+// ---------------------------------------------------------------------------
+// Mini Konva icon – renders the physics shape of a module at tile size
+// ---------------------------------------------------------------------------
+
+interface MiniPhysicalIconProps {
+  module: ModuleDefinition;
+  size?: number;
+}
+
+const MiniPhysicalIcon: React.FC<MiniPhysicalIconProps> = ({ module, size = 58 }) => {
+  const model = MODULE_SIMULATION_MODELS[module.id];
+  if (!model || model.elementType === 'compound') {
+    // Fallback: coloured rectangle for unknown / compound modules
+    return (
+      <div
+        style={{
+          width: size,
+          height: size,
+          borderRadius: 4,
+          background: module.color || '#bdc3c7',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: '#fff',
+          fontSize: 10,
+          fontWeight: 600,
+        }}
+      >
+        {module.footprint.width}×{module.footprint.height}
+      </div>
+    );
+  }
+
+  // Build a mock OpticalElement centred at (0,0) in simulation space
+  const mockEl: OpticalElement = {
+    id: `mini-${module.id}`,
+    moduleInstanceId: `mini-${module.id}`,
+    type: model.elementType as OpticalElementType,
+    position: { x: 0, y: 0 },
+    rotation: model.rotationOffset ?? 0,
+    params: { ...model.defaultParams } as OpticalElement['params'],
+  };
+
+  // gridCellSize controls how many pixels per 50 mm of simulation space.
+  // Using size * 0.7 makes the aperture (~25 mm) fill ≈35 % of the tile.
+  const miniGridCellSize = size * 0.7;
+  const cx = size / 2;
+  const cy = size / 2;
+
+  return (
+    <Stage width={size} height={size} style={{ borderRadius: 4, display: 'block' }}>
+      <Layer>
+        {/* Background */}
+        <Rect x={0} y={0} width={size} height={size} fill="#f0f4f8" cornerRadius={4} />
+        {/* Centre-offset group so (0,0) in sim-space maps to the tile centre */}
+        <Group x={cx} y={cy}>
+          <ElementShape el={mockEl} gridCellSize={miniGridCellSize} cellPx={size} />
+        </Group>
+      </Layer>
+    </Stage>
+  );
+};
 
 export const PartLibrary: React.FC = () => {
   const { modules, loadModules } = useAppStore();
@@ -32,6 +102,7 @@ export const PartLibrary: React.FC = () => {
   const [selectedGroup, setSelectedGroup] = useState<string>('all');
   const [showWizard, setShowWizard] = useState(false);
   const [activeTab, setActiveTab] = useState(0); // 0 for all modules, 1 for user created
+  const [iconMode, setIconMode] = useState<'svg' | 'canvas'>('svg'); // icon display mode
   const longPressTimeout = useRef<number | null>(null);
   const isDragging = useRef(false);
 
@@ -289,7 +360,9 @@ export const PartLibrary: React.FC = () => {
               mb: 1,
             }}
           >
-            {module.thumbnail ? (
+            {iconMode === 'canvas' ? (
+              <MiniPhysicalIcon module={module} size={58} />
+            ) : module.thumbnail ? (
               <img 
                 src={module.thumbnail} 
                 alt={module.name}
@@ -365,9 +438,20 @@ export const PartLibrary: React.FC = () => {
     <Box data-tour="part-library" sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       {/* Header */}
       <Paper elevation={1} sx={{ p: 2, borderRadius: 0 }}>
-        <Typography variant="h6" gutterBottom sx={{ fontWeight: 500 }}>
-          Part Library
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+          <Typography variant="h6" sx={{ fontWeight: 500, flex: 1 }}>
+            Part Library
+          </Typography>
+          <Tooltip title={iconMode === 'svg' ? 'Switch to physics icons' : 'Switch to SVG thumbnails'}>
+            <IconButton
+              size="small"
+              onClick={() => setIconMode(m => m === 'svg' ? 'canvas' : 'svg')}
+              color={iconMode === 'canvas' ? 'primary' : 'default'}
+            >
+              {iconMode === 'svg' ? <PhysicsIcon fontSize="small" /> : <ImageIcon fontSize="small" />}
+            </IconButton>
+          </Tooltip>
+        </Box>
         
         {/* Tabs for All Parts vs User Created */}
         <Tabs 

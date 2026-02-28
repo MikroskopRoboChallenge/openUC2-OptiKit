@@ -55,6 +55,7 @@ export const Toolbar: React.FC = () => {
   const { 
     exportData, 
     saveToGitHub,
+    saveToGitHubOverwrite,
     generateShareableLink,
     downloadSTLBundle,
     importData, 
@@ -69,7 +70,8 @@ export const Toolbar: React.FC = () => {
     selectionMode,
     setSelectionMode,
     deleteSelectedItems,
-    selectedItems
+    selectedItems,
+    remoteSourcePath
   } = useAppStore();
 
   const handleExport = async () => {
@@ -153,6 +155,16 @@ Best regards`;
       setFeedbackOpen(true);
     } catch (error) {
       console.error('Failed to save to GitHub:', error);
+    }
+  };
+
+  const handleOverwriteToGitHub = async () => {
+    try {
+      await saveToGitHubOverwrite();
+      setFeedbackTrigger('github');
+      setFeedbackOpen(true);
+    } catch (error) {
+      console.error('Failed to overwrite on GitHub:', error);
     }
   };
 
@@ -560,6 +572,19 @@ openUC2 team via GitHub repository
               <GitHubIcon />
             </IconButton>
           </Tooltip>
+          {/* Show overwrite button only when a remote setup is loaded */}
+          {remoteSourcePath && (
+            <Tooltip title={`Save (overwrite) → ${remoteSourcePath}`}>
+              <IconButton
+                color="inherit"
+                onClick={handleOverwriteToGitHub}
+                size="small"
+                sx={{ opacity: 0.85 }}
+              >
+                <SaveIcon />
+              </IconButton>
+            </Tooltip>
+          )}
           <Tooltip title="Clear All">
             <IconButton 
               color="inherit"

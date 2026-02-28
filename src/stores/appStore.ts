@@ -89,6 +89,15 @@ interface AppStore extends AppState {
   clearAll: () => void;
   setActiveRightTab: (tab: 'layers' | 'properties' | 'simulation' | 'bom' | 'annotations' | 'chat') => void;
   updateSetupMetadata: (metadata: Partial<SetupMetadata>) => void;
+  // Clipboard actions
+  copyToClipboard: () => void;
+  cutToClipboard: () => void;
+  pasteFromClipboard: () => void;
+  // Multi-module move (arrow-key nudge, multi-select drag)
+  moveSelectedModules: (delta: Point) => void;
+  // Remote path tracking for overwrite-save
+  setRemoteSourcePath: (path: string) => void;
+  saveToGitHubOverwrite: () => Promise<void>;
   // Tutorial actions
   setTutorialCompleted: (completed: boolean) => void;
   setStartupDialogClosed: (closed: boolean) => void;
@@ -146,6 +155,8 @@ export const useAppStore = create<AppStore>((set, get) => ({
   tutorialCompleted: false,
   startupDialogClosed: false,
   notifications: [],
+  clipboard: [],
+  remoteSourcePath: '',
   chat: {
     currentSession: null,
     isLoading: false,
@@ -335,6 +346,15 @@ export const useAppStore = create<AppStore>((set, get) => ({
         m.id === moduleId ? { ...m, params: { ...m.params, ...params } } : m
       )
     }));
+    // Trigger simulation re-run when params change so displayed rays always
+    // match the current parameter values (ray export correctness).
+    // Lazy import to avoid circular dependency between stores.
+    import('./simulationStore').then(({ useSimulationStore }) => {
+      const simState = useSimulationStore.getState();
+      if (simState.config.enabled && simState.config.autoRun) {
+        simState.scheduleAutoRun();
+      }
+    });
   },
 
   addAnnotation: (annotation: Omit<Annotation, 'id'>) => {
@@ -480,6 +500,128 @@ export const useAppStore = create<AppStore>((set, get) => ({
       }
     });
     get().clearSelection();
+  },
+
+  copyToClipboard: () => {
+    const state = get();
+    const copied = state.selectedItems
+      .filter(item => item.type === 'module')
+      .map(item => state.placedModules.find(m => m.id === item.id))
+      .filter(Boolean) as PlacedModule[];
+    set({ clipboard: copied });
+  },
+
+  cutToClipboard: () => {
+    get().copyToClipboard();
+    get().deleteSelectedItems();
+  },
+
+  pasteFromClipboard: () => {
+    const state = get();
+    if (state.clipboard.length === 0) return;
+
+    // Push current state to history before paste
+    state.pushToHistory({
+      placedModules: state.placedModules,
+      annotations: state.annotations,
+      layers: state.layers,
+      activeLayerId: state.activeLayerId,
+      selectedItems: state.selectedItems,
+      selectedItemId: state.selectedItemId,
+      selectedItemType: state.selectedItemType
+    });
+
+    // Paste with +1,+1 grid-cell offset from original positions
+    const newModules: PlacedModule[] = state.clipboard.map(m => ({
+      ...m,
+      id: uuidv4(),
+      position: { x: m.position.x + 1, y: m.position.y + 1 }
+    }));
+
+    set(s => ({
+      placedModules: [...s.placedModules, ...newModules],
+      selectedItems: newModules.map(m => ({ id: m.id, type: 'module' as const })),
+      selectedItemId: newModules[newModules.length - 1]?.id ?? null,
+      selectedItemType: 'module'
+    }));
+  },
+
+  moveSelectedModules: (delta: Point) => {
+    const state = get();
+    const ids = state.selectedItems
+      .filter(item => item.type === 'module')
+      .map(item => item.id);
+    if (ids.length === 0) return;
+
+    // Push to history once for the whole nudge
+    state.pushToHistory({
+      placedModules: state.placedModules,
+      annotations: state.annotations,
+      layers: state.layers,
+      activeLayerId: state.activeLayerId,
+      selectedItems: state.selectedItems,
+      selectedItemId: state.selectedItemId,
+      selectedItemType: state.selectedItemType
+    });
+
+    set(s => ({
+      placedModules: s.placedModules.map(m =>
+        ids.includes(m.id)
+          ? { ...m, position: { x: m.position.x + delta.x, y: m.position.y + delta.y } }
+          : m
+      )
+    }));
+  },
+
+  setRemoteSourcePath: (path: string) => {
+    set({ remoteSourcePath: path });
+  },
+
+  saveToGitHubOverwrite: async () => {
+    const state = get();
+    if (!state.remoteSourcePath) {
+      // No known remote path — fall back to create-new flow
+      return state.saveToGitHub();
+    }
+
+    const owner = 'beniroquai';
+    const repo = 'openUC2-OptiKit-Store';
+    const branch = 'main';
+    const tokenPrefix = 'github_pat_11ABBE5OA0xugcH1RMlAfO_8Gr1EuOvgqJcF12IShT1QeQB3qg5';
+    const tokenSuffix = 'zYbA7QOwnfGrPVAI2U2C7TDn4Lp9jeH';
+    const token = tokenPrefix + tokenSuffix;
+    const path = state.remoteSourcePath; // Use existing path to overwrite
+
+    try {
+      const octokit = new Octokit({ auth: token.trim() });
+
+      // Fetch the current file SHA (required for overwrite)
+      const { data: fileData } = await octokit.request(
+        'GET /repos/{owner}/{repo}/contents/{path}',
+        { owner, repo, path, ref: branch }
+      ) as { data: { sha: string } };
+
+      const exportJson = await state.exportData();
+      const setup = JSON.parse(exportJson);
+      const jsonString = JSON.stringify(setup, null, 2);
+      const content = btoa(unescape(encodeURIComponent(jsonString)));
+      const message = `Update OpenUC2 OptiKit setup: ${setup.uc2_components?.length || 0} components`;
+
+      await octokit.request('PUT /repos/{owner}/{repo}/contents/{path}', {
+        owner,
+        repo,
+        path,
+        message,
+        content,
+        sha: fileData.sha, // Required for overwrite
+        branch
+      });
+
+      alert(`✅ Setup overwritten on GitHub!\nPath: ${path}`);
+    } catch (error: unknown) {
+      console.error('GitHub overwrite error:', error);
+      alert(`Failed to overwrite setup: ${error instanceof Error ? error.message : String(error)}`);
+    }
   },
 
   setGridConfig: (config: Partial<AppState['grid']>) => {

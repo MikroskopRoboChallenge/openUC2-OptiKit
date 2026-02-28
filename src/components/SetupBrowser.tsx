@@ -26,9 +26,10 @@ import {
   Menu,
   ListItemIcon,
   ListItemText,
-  Divider
+  Divider,
+  InputAdornment
 } from '@mui/material';
-import { Add as AddIcon, Refresh as RefreshIcon, Edit as EditIcon, Delete as DeleteIcon, MoreVert as MoreVertIcon } from '@mui/icons-material';
+import { Add as AddIcon, Refresh as RefreshIcon, Edit as EditIcon, Delete as DeleteIcon, MoreVert as MoreVertIcon, Search as SearchIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '../stores/appStore';
 
@@ -67,7 +68,7 @@ interface SetupAnalysisData {
 
 export const SetupBrowser: React.FC = () => {
   const navigate = useNavigate();
-  const { importFromUrl, exportData } = useAppStore();
+  const { importFromUrl, exportData, setRemoteSourcePath } = useAppStore();
   const [setups, setSetups] = useState<SetupMetadata[]>([]);
   const [collections, setCollections] = useState<CollectionMetadata[]>([]);
   const [loading, setLoading] = useState(true);
@@ -89,6 +90,11 @@ export const SetupBrowser: React.FC = () => {
     description: '',
     screenshot: ''
   });
+
+  // Search / filter / sort state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterCategory, setFilterCategory] = useState('All');
+  const [sortBy, setSortBy] = useState<'name' | 'category'>('name');
 
   const parseCsvLine = (line: string): string[] => {
     const result: string[] = [];
@@ -438,6 +444,8 @@ export const SetupBrowser: React.FC = () => {
       // Load the setup into the editor
       const success = await importFromUrl(setup.url);
       if (success) {
+        // Track where this setup came from so it can be overwritten later
+        setRemoteSourcePath(setup.path);
         // Navigate back to the editor
         navigate('/');
       } else {
@@ -569,6 +577,20 @@ export const SetupBrowser: React.FC = () => {
 
   const categories = ['General', 'Microscopy', 'Astronomy', 'Spectroscopy', 'Imaging', 'Laser'];
 
+  /** Filtered + sorted view of the setups list */
+  const filteredSetups = setups
+    .filter(s => {
+      const matchesSearch = searchQuery.trim() === '' ||
+        s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        s.description.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesCategory = filterCategory === 'All' || s.category === filterCategory;
+      return matchesSearch && matchesCategory;
+    })
+    .sort((a, b) => {
+      if (sortBy === 'name') return a.name.localeCompare(b.name);
+      return a.category.localeCompare(b.category);
+    });
+
   if (loading) {
     return (
       <Container>
@@ -683,6 +705,48 @@ export const SetupBrowser: React.FC = () => {
         {tabValue === 0 && (
           // Individual Setups Tab Content
           <>
+            {/* Search, Filter, Sort toolbar */}
+            <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap', alignItems: 'center' }}>
+              <TextField
+                size="small"
+                placeholder="Search setups…"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                sx={{ flex: '1 1 200px', minWidth: 160 }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon fontSize="small" />
+                    </InputAdornment>
+                  )
+                }}
+              />
+              <FormControl size="small" sx={{ minWidth: 150 }}>
+                <InputLabel>Category</InputLabel>
+                <Select
+                  value={filterCategory}
+                  label="Category"
+                  onChange={(e) => setFilterCategory(e.target.value as string)}
+                >
+                  <MenuItem value="All">All</MenuItem>
+                  {categories.map(cat => (
+                    <MenuItem key={cat} value={cat}>{cat}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              <FormControl size="small" sx={{ minWidth: 130 }}>
+                <InputLabel>Sort by</InputLabel>
+                <Select
+                  value={sortBy}
+                  label="Sort by"
+                  onChange={(e) => setSortBy(e.target.value as 'name' | 'category')}
+                >
+                  <MenuItem value="name">Name</MenuItem>
+                  <MenuItem value="category">Category</MenuItem>
+                </Select>
+              </FormControl>
+            </Box>
+
             <Box 
               sx={{ 
                 display: 'grid',
@@ -694,7 +758,7 @@ export const SetupBrowser: React.FC = () => {
                 gap: { xs: 2, sm: 3 }
               }}
             >
-              {setups.map((setup, index) => (
+              {filteredSetups.map((setup, index) => (
                 <Box key={index}>
                   <Card 
                     sx={{ 
@@ -834,13 +898,15 @@ export const SetupBrowser: React.FC = () => {
               ))}
             </Box>
 
-            {setups.length === 0 && !loading && (
+            {filteredSetups.length === 0 && !loading && (
               <Box textAlign="center" py={8}>
                 <Typography variant="h6" color="text.secondary">
-                  No setups found
+                  {searchQuery || filterCategory !== 'All' ? 'No setups match your filter' : 'No setups found'}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  The setup repository might be empty or unavailable.
+                  {searchQuery || filterCategory !== 'All'
+                    ? 'Try a different search term or category.'
+                    : 'The setup repository might be empty or unavailable.'}
                 </Typography>
               </Box>
             )}

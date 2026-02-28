@@ -3,19 +3,47 @@ import { Stage, Layer, Line, Rect, Text, Group, Image } from 'react-konva';
 import { useAppStore } from '../stores/appStore';
 import { AnnotationCanvas } from './AnnotationCanvas';
 import { RayOverlay } from './RayOverlay';
+import { PhysicalModuleOverlay } from './PhysicalModuleOverlay';
 import type { KonvaEventObject } from 'konva/lib/Node';
 import type { Point } from '../types';
 import type Konva from 'konva';
+
+/** Inline style for context-menu items */
+const ctxItemStyle: React.CSSProperties = {
+  padding: '7px 16px',
+  cursor: 'pointer',
+  fontSize: 13,
+  whiteSpace: 'nowrap',
+  userSelect: 'none',
+};
+const ctxItemHover = (e: React.MouseEvent<HTMLDivElement>) => {
+  (e.currentTarget as HTMLDivElement).style.background = '#f0f4f8';
+};
+const ctxItemLeave = (e: React.MouseEvent<HTMLDivElement>) => {
+  (e.currentTarget as HTMLDivElement).style.background = '';
+};
 
 const GRID_SIZE = 10; // Number of grid cells to show (limited to 10x10 as requested)
 const CANVAS_SIZE = 800; // Canvas size in pixels
 
 export const GridCanvas: React.FC = () => {
   const stageRef = useRef<Konva.Stage>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
   const [stageSize, setStageSize] = useState({ width: CANVAS_SIZE, height: CANVAS_SIZE });
   const [moduleImages, setModuleImages] = useState<Record<string, HTMLImageElement>>({});
   const [isDraggingModule, setIsDraggingModule] = useState(false);
   const annotationMode = useAppStore((state) => state.annotationMode);
+
+  // Context-menu state (position in screen pixels)
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; moduleId: string | null } | null>(null);
+
+  // Box-select state (positions in canvas content space, i.e. after pan/zoom)
+  const [boxSelect, setBoxSelect] = useState<{ startX: number; startY: number; endX: number; endY: number } | null>(null);
+  const isBoxSelecting = useRef(false);
+
+  // Records pixel positions of selected modules when multi-drag starts
+  const dragAnchor = useRef<{ moduleId: string; origPos: Point } | null>(null);
+  const dragGroupOrigins = useRef<Record<string, Point>>({});
   
   const {
     grid,
@@ -25,12 +53,18 @@ export const GridCanvas: React.FC = () => {
     activeLayerId,
     selectedItemId,
     selectedItems,
-    selectionMode,
     modules,
     placeModule,
     moveModule,
     selectItem,
-    setViewport
+    setViewport,
+    deleteSelectedItems,
+    copyToClipboard,
+    cutToClipboard,
+    pasteFromClipboard,
+    moveSelectedModules,
+    addToSelection,
+    clearSelection,
   } = useAppStore();
 
   const activeLayer = layers.find(layer => layer.id === activeLayerId);
@@ -68,10 +102,10 @@ export const GridCanvas: React.FC = () => {
   // Update stage size when window resizes
   useEffect(() => {
     const updateSize = () => {
-      const container = stageRef.current?.container();
-      if (container) {
-        const rect = container.getBoundingClientRect();
-        setStageSize({ width: rect.width, height: rect.height });
+      // Read size from the wrapper div, NOT the Konva container (which sizes itself to the stage)
+      const wrapper = wrapperRef.current;
+      if (wrapper) {
+        setStageSize({ width: wrapper.clientWidth, height: wrapper.clientHeight });
       }
     };
 
@@ -149,6 +183,14 @@ export const GridCanvas: React.FC = () => {
       canvasElement.addEventListener('mobile-drop', handleMobileDrop as EventListener);
     }
     
+    // Use ResizeObserver for accurate sizing of the wrapper div
+    const wrapper = wrapperRef.current;
+    let resizeObserver: ResizeObserver | undefined;
+    if (wrapper) {
+      resizeObserver = new ResizeObserver(() => updateSize());
+      resizeObserver.observe(wrapper);
+    }
+    
     updateSize();
     
     return () => {
@@ -157,8 +199,40 @@ export const GridCanvas: React.FC = () => {
       if (canvasElement) {
         canvasElement.removeEventListener('mobile-drop', handleMobileDrop as EventListener);
       }
+      resizeObserver?.disconnect();
     };
   }, [viewport.pan.x, viewport.pan.y, viewport.zoom, currentLayerIndex, placeModule, pixelToGrid, snapToGrid]);
+
+  // Keyboard shortcuts: Delete, Ctrl+C/X/V, Arrow nudge
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Do not intercept when a text field is focused
+      const target = e.target as HTMLElement;
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName) || target.isContentEditable) return;
+
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        e.preventDefault();
+        deleteSelectedItems();
+      } else if (e.ctrlKey || e.metaKey) {
+        if (e.key === 'c') { e.preventDefault(); copyToClipboard(); }
+        else if (e.key === 'x') { e.preventDefault(); cutToClipboard(); }
+        else if (e.key === 'v') { e.preventDefault(); pasteFromClipboard(); }
+      } else if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+        e.preventDefault();
+        const step = e.shiftKey ? 5 : 1; // Shift = 5-cell nudge
+        const delta = {
+          x: e.key === 'ArrowLeft' ? -step : e.key === 'ArrowRight' ? step : 0,
+          y: e.key === 'ArrowUp'   ? -step : e.key === 'ArrowDown'  ? step : 0,
+        };
+        moveSelectedModules(delta);
+      } else if (e.key === 'Escape') {
+        setContextMenu(null);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [deleteSelectedItems, copyToClipboard, cutToClipboard, pasteFromClipboard, moveSelectedModules]);
 
   // Load SVG images for modules
   useEffect(() => {
@@ -199,33 +273,72 @@ export const GridCanvas: React.FC = () => {
     }
   }, [modules]);
 
-  // Generate grid lines and labels
+  // Generate grid lines that fill the entire visible stage area
   const generateGridLines = () => {
     const lines = [];
-    const cellSize = grid.cellSize; // Don't scale with zoom for grid lines
-    const gridWidth = GRID_SIZE * cellSize;
-    const gridHeight = GRID_SIZE * cellSize;
+    const cellSize = grid.cellSize;
+    const strokeW = 1 / viewport.zoom;
 
-    // Vertical lines
-    for (let i = 0; i <= GRID_SIZE; i++) {
+    // Compute visible content-space range from viewport transform
+    // visible_min = (-pan) / zoom,  visible_max = (stageSize - pan) / zoom
+    const visMinX = (-viewport.pan.x - cellSize) / viewport.zoom;
+    const visMaxX = (stageSize.width  - viewport.pan.x + cellSize) / viewport.zoom;
+    const visMinY = (-viewport.pan.y - cellSize) / viewport.zoom;
+    const visMaxY = (stageSize.height - viewport.pan.y + cellSize) / viewport.zoom;
+
+    // Snap to cell boundaries
+    const startCol = Math.floor(visMinX / cellSize);
+    const endCol   = Math.ceil(visMaxX  / cellSize);
+    const startRow = Math.floor(visMinY / cellSize);
+    const endRow   = Math.ceil(visMaxY  / cellSize);
+
+    // Background fill for the whole visible area (matches grid background)
+    lines.push(
+      <Rect
+        key="bg"
+        x={startCol * cellSize}
+        y={startRow * cellSize}
+        width={(endCol - startCol) * cellSize}
+        height={(endRow - startRow) * cellSize}
+        fill="#fafafa"
+        listening={false}
+      />
+    );
+
+    // Highlight the official GRID_SIZE × GRID_SIZE work area slightly
+    lines.push(
+      <Rect
+        key="work-area"
+        x={0} y={0}
+        width={GRID_SIZE * cellSize}
+        height={GRID_SIZE * cellSize}
+        fill="#ffffff"
+        listening={false}
+      />
+    );
+
+    // Vertical lines across full visible range
+    for (let i = startCol; i <= endCol; i++) {
+      const isWorkBorder = i === 0 || i === GRID_SIZE;
       lines.push(
         <Line
           key={`v-${i}`}
-          points={[i * cellSize, 0, i * cellSize, gridHeight]}
-          stroke="#ddd"
-          strokeWidth={1 / viewport.zoom} // Scale stroke width inversely with zoom
+          points={[i * cellSize, startRow * cellSize, i * cellSize, endRow * cellSize]}
+          stroke={isWorkBorder ? '#bbb' : '#ddd'}
+          strokeWidth={isWorkBorder ? 1.5 / viewport.zoom : strokeW}
         />
       );
     }
 
-    // Horizontal lines
-    for (let i = 0; i <= GRID_SIZE; i++) {
+    // Horizontal lines across full visible range
+    for (let i = startRow; i <= endRow; i++) {
+      const isWorkBorder = i === 0 || i === GRID_SIZE;
       lines.push(
         <Line
           key={`h-${i}`}
-          points={[0, i * cellSize, gridWidth, i * cellSize]}
-          stroke="#ddd"
-          strokeWidth={1 / viewport.zoom} // Scale stroke width inversely with zoom
+          points={[startCol * cellSize, i * cellSize, endCol * cellSize, i * cellSize]}
+          stroke={isWorkBorder ? '#bbb' : '#ddd'}
+          strokeWidth={isWorkBorder ? 1.5 / viewport.zoom : strokeW}
         />
       );
     }
@@ -279,34 +392,110 @@ export const GridCanvas: React.FC = () => {
 
 
 
-  // Handle module drag start
-  const handleModuleDragStart = () => {
+  // Handle module drag start — record original positions for multi-select drag
+  const handleModuleDragStart = (moduleId: string) => {
     setIsDraggingModule(true);
+    const state = useAppStore.getState();
+    const origins: Record<string, Point> = {};
+    state.selectedItems
+      .filter(i => i.type === 'module')
+      .forEach(item => {
+        const m = state.placedModules.find(pm => pm.id === item.id);
+        if (m) origins[item.id] = { x: m.position.x, y: m.position.y };
+      });
+    dragGroupOrigins.current = origins;
+    const dragged = state.placedModules.find(m => m.id === moduleId);
+    dragAnchor.current = dragged ? { moduleId, origPos: { x: dragged.position.x, y: dragged.position.y } } : null;
   };
 
-  // Handle module drag end
+  // Handle module drag end — apply delta to all selected modules
   const handleModuleDragEnd = (moduleId: string, e: KonvaEventObject<DragEvent>) => {
     const pos = e.target.position();
     const snappedPos = snapToGrid(pos);
     const gridPos = pixelToGrid(snappedPos);
-    
-    // Move module to new position
-    moveModule(moduleId, gridPos);
-    
-    // Reset the visual position to the snapped grid position
+
+    // Reset visual position
     e.target.position(gridToPixel(gridPos));
-    
-    // Force redraw to prevent visual glitches
     e.target.getStage()?.batchDraw();
-    
     setIsDraggingModule(false);
+
+    const anchor = dragAnchor.current;
+    const origins = dragGroupOrigins.current;
+    const selectedIds = Object.keys(origins);
+
+    if (anchor && selectedIds.includes(moduleId) && selectedIds.length > 1) {
+      // Multi-select drag: compute delta and move all selected modules
+      const delta = { x: gridPos.x - anchor.origPos.x, y: gridPos.y - anchor.origPos.y };
+      moveSelectedModules(delta);
+    } else {
+      // Single module drag
+      moveModule(moduleId, gridPos);
+    }
+
+    dragAnchor.current = null;
+    dragGroupOrigins.current = {};
   };
 
   const handleCanvasClick = (e: KonvaEventObject<MouseEvent>) => {
+    // Ignore clicks that finished a box-select
+    if (isBoxSelecting.current) return;
+    // Close context menu on any canvas click
+    setContextMenu(null);
     // Check if clicking on empty area
     if (e.target === e.target.getStage()) {
       selectItem(null, null);
     }
+  };
+
+  // Convert a screen-space pointer position to canvas content space
+  const screenToCanvas = useCallback((screenX: number, screenY: number): Point => ({
+    x: (screenX - viewport.pan.x) / viewport.zoom,
+    y: (screenY - viewport.pan.y) / viewport.zoom,
+  }), [viewport]);
+
+  // Stage mouse events for Shift+drag box-select
+  const handleStageMouseDown = (e: KonvaEventObject<MouseEvent>) => {
+    if (!e.evt.shiftKey || e.target !== e.target.getStage()) return;
+    const p = screenToCanvas(e.evt.offsetX, e.evt.offsetY);
+    isBoxSelecting.current = true;
+    setBoxSelect({ startX: p.x, startY: p.y, endX: p.x, endY: p.y });
+    e.evt.preventDefault();
+  };
+
+  const handleStageMouseMove = (e: KonvaEventObject<MouseEvent>) => {
+    if (!isBoxSelecting.current) return;
+    const p = screenToCanvas(e.evt.offsetX, e.evt.offsetY);
+    setBoxSelect(prev => prev ? { ...prev, endX: p.x, endY: p.y } : null);
+  };
+
+  const handleStageMouseUp = (_e: KonvaEventObject<MouseEvent>) => {
+    if (!isBoxSelecting.current || !boxSelect) return;
+    isBoxSelecting.current = false;
+
+    // Rect in canvas content space
+    const rx = Math.min(boxSelect.startX, boxSelect.endX);
+    const ry = Math.min(boxSelect.startY, boxSelect.endY);
+    const rw = Math.abs(boxSelect.endX - boxSelect.startX);
+    const rh = Math.abs(boxSelect.endY - boxSelect.startY);
+
+    if (rw > 4 || rh > 4) {
+      const cellSize = grid.cellSize;
+      clearSelection();
+      placedModules.forEach(module => {
+        const modDef = modules.find(m => m.id === module.moduleId);
+        if (!modDef) return;
+        const mx = module.position.x * cellSize;
+        const my = module.position.y * cellSize;
+        const mw = modDef.footprint.width * cellSize;
+        const mh = modDef.footprint.height * cellSize;
+        // AABB intersection test
+        if (mx < rx + rw && mx + mw > rx && my < ry + rh && my + mh > ry) {
+          addToSelection(module.id, 'module');
+        }
+      });
+    }
+
+    setBoxSelect(null);
   };
 
   // Handle drop from part library
@@ -373,13 +562,13 @@ export const GridCanvas: React.FC = () => {
             x={pos.x}
             y={pos.y}
             draggable
-            onDragStart={handleModuleDragStart}
+            onDragStart={() => handleModuleDragStart(module.id)}
             onDragEnd={(e) => handleModuleDragEnd(module.id, e)}
             onClick={(e) => {
-              if (selectionMode === 'multiple' && e.evt.ctrlKey) {
-                // Ctrl+click in multiple mode: toggle selection
-                const isSelected = selectedItems.some(item => item.id === module.id);
-                if (isSelected) {
+              // Ctrl/Meta+click always toggles multi-selection
+              if (e.evt.ctrlKey || e.evt.metaKey) {
+                const alreadySelected = selectedItems.some(item => item.id === module.id);
+                if (alreadySelected) {
                   useAppStore.getState().removeFromSelection(module.id);
                 } else {
                   useAppStore.getState().addToSelection(module.id, 'module');
@@ -387,6 +576,12 @@ export const GridCanvas: React.FC = () => {
               } else {
                 selectItem(module.id, 'module');
               }
+            }}
+            onContextMenu={(e) => {
+              // Show context menu at screen position
+              e.evt.preventDefault();
+              selectItem(module.id, 'module');
+              setContextMenu({ x: e.evt.clientX, y: e.evt.clientY, moduleId: module.id });
             }}
           >
             <Group
@@ -439,15 +634,20 @@ export const GridCanvas: React.FC = () => {
 
   return (
     <div
+      ref={wrapperRef}
       style={{ 
         width: '100%', 
         height: '100%',
+        position: 'relative',
         touchAction: 'none', // Prevent default touch behaviors
         WebkitUserSelect: 'none',
-        userSelect: 'none'
+        userSelect: 'none',
+        overflow: 'hidden'
       }}
       onDrop={handleDrop}
       onDragOver={handleDragOver}
+      // Close context menu on any click outside the menu
+      onClick={() => setContextMenu(null)}
     >
       <Stage
         ref={stageRef}
@@ -458,6 +658,16 @@ export const GridCanvas: React.FC = () => {
         x={viewport.pan.x}
         y={viewport.pan.y}
         onClick={handleCanvasClick}
+        onMouseDown={handleStageMouseDown}
+        onMouseMove={handleStageMouseMove}
+        onMouseUp={handleStageMouseUp}
+        onContextMenu={(e) => {
+          // Right-click on empty canvas area: show paste-only menu
+          if (e.target === e.target.getStage()) {
+            e.evt.preventDefault();
+            setContextMenu({ x: e.evt.clientX, y: e.evt.clientY, moduleId: null });
+          }
+        }}
         onWheel={(e) => {
           // Handle zoom with mouse wheel
           e.evt.preventDefault();
@@ -489,7 +699,7 @@ export const GridCanvas: React.FC = () => {
             });
           }
         }}
-        draggable={annotationMode === 'none'}
+        draggable={annotationMode === 'none' && !isBoxSelecting.current}
         onDragStart={(e) => {
           // Prevent stage dragging while dragging modules
           if (isDraggingModule) {
@@ -516,9 +726,29 @@ export const GridCanvas: React.FC = () => {
           {/* Placed modules */}
           {renderPlacedModules()}
         </Layer>
+        {/* Box-select rubber-band rectangle */}
+        {boxSelect && (
+          <Layer listening={false}>
+            <Rect
+              x={Math.min(boxSelect.startX, boxSelect.endX)}
+              y={Math.min(boxSelect.startY, boxSelect.endY)}
+              width={Math.abs(boxSelect.endX - boxSelect.startX)}
+              height={Math.abs(boxSelect.endY - boxSelect.startY)}
+              fill="rgba(41, 128, 185, 0.08)"
+              stroke="#2980b9"
+              strokeWidth={1 / viewport.zoom}
+              dash={[5 / viewport.zoom, 3 / viewport.zoom]}
+            />
+          </Layer>
+        )}
         {/* Ray tracing overlay */}
         <Layer listening={false}>
           <RayOverlay 
+            viewport={viewport}
+            gridCellSize={grid.cellSize}
+          />
+          {/* Physical geometry icons overlaid when enabled */}
+          <PhysicalModuleOverlay
             viewport={viewport}
             gridCellSize={grid.cellSize}
           />
@@ -531,6 +761,61 @@ export const GridCanvas: React.FC = () => {
           />
         </Layer>
       </Stage>
+
+      {/* Context menu (rendered as regular DOM element over the canvas) */}
+      {contextMenu && (
+        <div
+          style={{
+            position: 'fixed',
+            top: contextMenu.y,
+            left: contextMenu.x,
+            background: '#fff',
+            border: '1px solid #dde1e7',
+            borderRadius: 6,
+            boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
+            zIndex: 99999,
+            minWidth: 170,
+            padding: '4px 0',
+            fontSize: 13,
+          }}
+          // Stop propagation so the parent onClick (which closes menu) is not triggered
+          onClick={(e) => e.stopPropagation()}
+        >
+          {contextMenu.moduleId && (
+            <>
+              <div
+                style={ctxItemStyle}
+                onMouseEnter={ctxItemHover}
+                onMouseLeave={ctxItemLeave}
+                onClick={() => { copyToClipboard(); setContextMenu(null); }}
+              >Copy&nbsp;&nbsp;<span style={{color:'#888',fontSize:11}}>Ctrl+C</span></div>
+              <div
+                style={ctxItemStyle}
+                onMouseEnter={ctxItemHover}
+                onMouseLeave={ctxItemLeave}
+                onClick={() => { cutToClipboard(); setContextMenu(null); }}
+              >Cut&nbsp;&nbsp;<span style={{color:'#888',fontSize:11}}>Ctrl+X</span></div>
+            </>
+          )}
+          <div
+            style={ctxItemStyle}
+            onMouseEnter={ctxItemHover}
+            onMouseLeave={ctxItemLeave}
+            onClick={() => { pasteFromClipboard(); setContextMenu(null); }}
+          >Paste&nbsp;&nbsp;<span style={{color:'#888',fontSize:11}}>Ctrl+V</span></div>
+          {contextMenu.moduleId && (
+            <>
+              <div style={{ borderTop: '1px solid #eee', margin: '4px 0' }} />
+              <div
+                style={{ ...ctxItemStyle, color: '#e53935' }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = '#fff3f3'; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = ''; }}
+                onClick={() => { deleteSelectedItems(); setContextMenu(null); }}
+              >Delete&nbsp;&nbsp;<span style={{color:'#e57373',fontSize:11}}>Del</span></div>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 };

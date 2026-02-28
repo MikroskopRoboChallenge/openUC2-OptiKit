@@ -147,6 +147,10 @@ export interface AppState {
   startupDialogClosed: boolean;
   // Chat state
   chat: ChatState;
+  // Clipboard for copy/cut/paste
+  clipboard: PlacedModule[];
+  // Path of the remotely loaded setup (for overwrite-save)
+  remoteSourcePath: string;
 }
 
 export interface Command {
@@ -345,6 +349,8 @@ export type OpticalElementType =
   | 'detector'        // Camera/detector surface
   | 'aperture'        // Iris or pinhole
   | 'filter'          // Absorbing/bandpass filter
+  | 'fluorescent'     // Fluorescent sample: converts excitation → emission wavelength
+  | 'aquarium'        // Sample container: blocks rays in filled half-volume
   | 'grating';        // Diffraction grating
 
 /**
@@ -430,7 +436,16 @@ export interface OpticalElementParams {
   transmission?: number;     // 0-1
   bandpassCenter?: number;   // nm
   bandpassWidth?: number;    // nm (FWHM)
-  
+
+  // Fluorescent sample parameters
+  excitationWavelength?: number;   // nm - peak excitation
+  excitationBandwidth?: number;    // nm - FWHM of excitation band
+  emissionWavelength?: number;     // nm - peak emission
+  conversionEfficiency?: number;   // 0-1 - fraction of absorbed photons re-emitted
+
+  // Aquarium / sample container parameters
+  fillFraction?: number;     // 0-1 - fraction of volume filled with sample (default 0.5)
+
   // Grating parameters
   linesPerMm?: number;       // Lines per mm
   order?: number;            // Diffraction order
@@ -500,6 +515,7 @@ export interface SimulationConfig {
   wavelength: number;        // Default wavelength in nm
   showRays: boolean;         // Render ray paths
   showDetectorReadings: boolean;
+  showPhysicalIcons: boolean; // Render geometry-derived icons instead of SVG thumbnails
   rayBrightness: number;     // 0-1, visual brightness of ray overlay
   rayColorMode: 'wavelength' | 'intensity' | 'source';
   gridToSimScale: number;    // mm per grid cell (default 50)
@@ -590,15 +606,19 @@ export const MODULE_SIMULATION_MODELS: Record<string, ModuleSimulationModel> = {
   },
   'mirror-1x1': {
     elementType: 'mirror',
-    defaultParams: { curvature: 0, reflectivity: 0.99, aperture: 25 }
+    // angle=-45: surface runs '/' (upper-left to lower-right), normal points upper-right.
+    // A downward (+Y screen) beam reflects to LEFT (-X) — standard diagonal deflector.
+    defaultParams: { curvature: 0, reflectivity: 0.99, aperture: 25, angle: -45 }
   },
   'kinematicmirror-1x1': {
     elementType: 'mirror',
-    defaultParams: { curvature: 0, reflectivity: 0.99, aperture: 25 }
+    // Same '/' convention
+    defaultParams: { curvature: 0, reflectivity: 0.99, aperture: 25, angle: -45 }
   },
   'kinematicmirror-90-1x1': {
     elementType: 'mirror',
-    defaultParams: { curvature: 0, reflectivity: 0.99, aperture: 25 }
+    // 90° mount: surface perpendicular to beam → retro-reflects
+    defaultParams: { curvature: 0, reflectivity: 0.99, aperture: 25, angle: 90 }
   },
   'beamsplitter-1x1': {
     elementType: 'beamsplitter',
@@ -756,11 +776,12 @@ export const MODULE_SIMULATION_MODELS: Record<string, ModuleSimulationModel> = {
     rotationOffset: 90, // Objective drawing is rotated 90° from optical axis
     parameterMappings: { 'focalLength': 'focalLength', 'principalPlaneOffset': 'principalPlaneOffset' }
   },
-  // Torch as point light source
+  // Torch as wide-angle point source
+  // rotationOffset=270: torch SVG faces → icon top, emission goes +X at rotation=0
   'torch-1x1': {
     elementType: 'led',
     defaultParams: { wavelength: 550, divergence: 60, beamDiameter: 10, rayCount: 9, power: 1 },
-    rotationOffset: 180,
+    rotationOffset: 270,
     parameterMappings: { 
       'wavelength': 'wavelength', 
       'divergence': 'divergence', 
@@ -815,5 +836,44 @@ export const MODULE_SIMULATION_MODELS: Record<string, ModuleSimulationModel> = {
       { type: 'detector', offsetX: 25, offsetY: 0, params: { width: 12, height: 8 } }
     ],
     parameterMappings: { 'focalLength': 'focalLength' }
+  },
+  // LED Matrix as extended LED source
+  'cube-ledmatrix-1x1': {
+    elementType: 'led',
+    defaultParams: { wavelength: 488, divergence: 60, beamDiameter: 40, rayCount: 11, power: 1 },
+    rotationOffset: 180,
+    parameterMappings: {
+      'wavelength': 'wavelength',
+      'divergence': 'divergence',
+      'rayCount': 'rayCount'
+    }
+  },
+  // XY Galvo mirror: behaves like a 45° kinematic mirror with adjustable angle
+  'galvo-xy': {
+    elementType: 'mirror',
+    defaultParams: { curvature: 0, reflectivity: 0.99, aperture: 20, angle: 45 }
+  },
+  // Aquarium: absorbs rays in the filled (lower) half
+  'aquarium-1x1': {
+    elementType: 'aquarium',
+    defaultParams: { aperture: 50, fillFraction: 0.5 },
+    parameterMappings: { 'fillFraction': 'fillFraction' }
+  },
+  // Fluorescent sample: converts excitation to emission wavelength
+  'fluorescent-sample-1x1': {
+    elementType: 'fluorescent',
+    defaultParams: {
+      aperture: 25,
+      excitationWavelength: 488,
+      excitationBandwidth: 30,
+      emissionWavelength: 525,
+      conversionEfficiency: 0.5,
+      rayCount: 8
+    },
+    parameterMappings: {
+      'excitationWavelength': 'excitationWavelength',
+      'emissionWavelength': 'emissionWavelength',
+      'conversionEfficiency': 'conversionEfficiency'
+    }
   }
 };

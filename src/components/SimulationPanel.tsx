@@ -301,7 +301,7 @@ export const SimulationPanel: React.FC = () => {
                   </FormControl>
                   
                   {/* Visibility toggles */}
-                  <Box sx={{ display: 'flex', gap: 2 }}>
+                  <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
                     <FormControlLabel
                       control={
                         <Switch
@@ -321,6 +321,16 @@ export const SimulationPanel: React.FC = () => {
                         />
                       }
                       label="Show Readings"
+                    />
+                    <FormControlLabel
+                      control={
+                        <Switch
+                          size="small"
+                          checked={config.showPhysicalIcons ?? false}
+                          onChange={(e) => setConfig({ showPhysicalIcons: e.target.checked })}
+                        />
+                      }
+                      label="Physical Icons"
                     />
                   </Box>
                 </Box>
