@@ -18,7 +18,6 @@ import {
   ShoppingCart,
   Refresh,
 } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
 import { useFrameWizardStore } from '../stores/frameWizardStore';
 import { loadAllLibraries } from '../utils/frameLibraryLoader';
 import { LightSourceStep } from './frameWizard/LightSourceStep';
@@ -49,7 +48,6 @@ const STEP_LABELS = [
 ];
 
 export function FrameWizardPage() {
-  const navigate = useNavigate();
   const {
     currentStep,
     setStep,
@@ -112,10 +110,11 @@ export function FrameWizardPage() {
       },
     };
 
-    // Encode as base64 and navigate to canvas
+    // Encode as base64 and navigate to canvas via full page load
+    // (React Router navigate() won't re-trigger the App.tsx useEffect that reads ?data=)
     const encoded = btoa(JSON.stringify(layout));
-    navigate(`/configurator?data=${encoded}`);
-  }, [getSelectedComponents, navigate]);
+    window.location.href = `/configurator?data=${encoded}`;
+  }, [getSelectedComponents]);
 
   const stepPrice = getStepPrice(currentStep);
   const totalPrice = getTotalPrice();

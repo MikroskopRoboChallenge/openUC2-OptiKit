@@ -361,6 +361,26 @@ openUC2 team via GitHub repository
               </Typography>
             </Button>
           </Tooltip>
+          <Tooltip title="FRAME Microscope Configurator">
+            <Button
+              color="inherit"
+              startIcon={<SimulationIcon />}
+              onClick={() => navigate('/configurator/frame')}
+              size="small"
+              sx={{
+                textTransform: 'none',
+                minWidth: { xs: '40px', sm: 'auto' },
+                px: { xs: 1, sm: 2 },
+                '& .MuiButton-startIcon': {
+                  mr: { xs: 0, sm: 1 }
+                }
+              }}
+            >
+              <Typography sx={{ display: { xs: 'none', sm: 'inline' } }}>
+                FRAME
+              </Typography>
+            </Button>
+          </Tooltip>
         </Box>
 
         <Divider 

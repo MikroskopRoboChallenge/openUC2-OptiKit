@@ -156,6 +156,41 @@ export function ObjectiveStep() {
           </TableBody>
         </Table>
       </TableContainer>
+
+      {/* Selected objective detail card */}
+      {(() => {
+        const sel = objectives.find((o) => o.id === wizardState.primaryObjective);
+        if (!sel) return null;
+        return (
+          <Paper variant="outlined" sx={{ mt: 2, p: 2, display: 'flex', gap: 2, alignItems: 'center' }}>
+            {sel.thumbnail && (
+              <Box sx={{ flexShrink: 0, width: 80, height: 80, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <img
+                  src={sel.thumbnail.startsWith('/') ? `/configurator${sel.thumbnail}` : sel.thumbnail}
+                  alt={sel.name}
+                  style={{ maxWidth: 70, maxHeight: 70 }}
+                />
+              </Box>
+            )}
+            <Box sx={{ flex: 1 }}>
+              <Typography variant="subtitle1" fontWeight="bold">{sel.name}</Typography>
+              <Typography variant="body2" color="text.secondary">
+                {sel.manufacturer} &middot; {sel.magnification}× &middot; NA {sel.na} &middot; WD {sel.workingDistance_mm}mm &middot; {sel.immersion} &middot; {sel.threadType}
+              </Typography>
+              <Typography variant="subtitle2" color="primary" sx={{ mt: 0.5 }}>
+                ${sel.price.toLocaleString()}
+              </Typography>
+            </Box>
+            {sel.docsUrl && (
+              <Tooltip title="View full documentation">
+                <IconButton onClick={() => window.open(sel.docsUrl, '_blank', 'noopener')}>
+                  <Info />
+                </IconButton>
+              </Tooltip>
+            )}
+          </Paper>
+        );
+      })()}
     </Box>
   );
 }
