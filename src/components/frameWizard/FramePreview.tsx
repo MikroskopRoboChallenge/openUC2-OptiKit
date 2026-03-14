@@ -103,7 +103,7 @@ function getConfigImageFilename(ws: {
   const illuKey = (ws.lightSource || 'none').replace(/[^a-z0-9]/gi, '').toLowerCase();
   const afKey = (ws.autofocus || 'none').replace(/[^a-z0-9]/gi, '').toLowerCase();
   const fluoKey = ws.hasFluorescence ? 'fluo' : 'nofluo';
-  return `/configurator/frame_configs/frame_${illuKey}_${afKey}_${fluoKey}.png`;
+  return `/configurator/frame_configs/frame_${illuKey}_${afKey}_${fluoKey}.svg`;
 }
 
 export function FramePreview() {

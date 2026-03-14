@@ -6,6 +6,8 @@ import {
   CardActionArea,
   Tooltip,
   IconButton,
+  Paper,
+  Divider,
 } from '@mui/material';
 import { Info, ViewModule } from '@mui/icons-material';
 import { useFrameWizardStore } from '../../stores/frameWizardStore';
@@ -15,7 +17,9 @@ const HOLDER_OPTIONS: {
   value: SampleHolderChoice;
   label: string;
   icon: string;
+  photo: string;
   description: string;
+  detailText: string;
   docsUrl: string;
   price: number;
 }[] = [
@@ -23,8 +27,11 @@ const HOLDER_OPTIONS: {
     value: '4-slide-insert',
     label: '4-Slide Insert',
     icon: '/configurator/icons/uc2-framewellplate4.svg',
+    photo: '/configurator/photos/4-slide-insert.svg',
     description:
       'Holds up to 4 standard microscope slides (75×25mm). Compatible with motorized XY stage for scanning.',
+    detailText:
+      'The 4-slide insert is a 3D-printed holder that fits into the FRAME stage area. It accommodates up to 4 standard microscope slides (75×25mm) in a 2×2 grid arrangement. Compatible with the motorized XY stage for automated slide scanning. Spring-loaded clips hold slides securely during movement.',
     docsUrl: 'https://docs.openuc2.com/frame/4-slide-insert',
     price: 80,
   },
@@ -32,8 +39,11 @@ const HOLDER_OPTIONS: {
     value: 'wellplate-insert',
     label: 'Wellplate Insert',
     icon: '/configurator/icons/uc2-framewellplate.svg',
+    photo: '/configurator/photos/wellplate-insert.svg',
     description:
       'Standard SBS-format wellplate holder. Fits 6, 12, 24, 48, or 96-well plates for high-throughput screening.',
+    detailText:
+      'The wellplate insert accepts standard SBS-format microwell plates (6 to 96-well). Precise positioning ensures alignment with motorized XY scanning patterns. Features alignment pins and spring retention for vibration-free imaging. Ideal for drug screening, cell culture assays, and high-content analysis.',
     docsUrl: 'https://docs.openuc2.com/frame/wellplate-insert',
     price: 100,
   },
@@ -134,6 +144,29 @@ export function SampleHolderStep() {
           </CardActionArea>
         </Card>
       </Box>
+
+      {/* Selected module detail panel */}
+      {(() => {
+        const sel = HOLDER_OPTIONS.find((o) => o.value === wizardState.sampleHolder);
+        if (!sel) return null;
+        return (
+          <Paper variant="outlined" sx={{ mt: 3, p: 2.5, display: 'flex', gap: 3, alignItems: 'flex-start' }}>
+            <Box sx={{ flexShrink: 0, width: 160, height: 120, borderRadius: 1, overflow: 'hidden', bgcolor: '#fafafa', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <img src={sel.photo} alt={sel.label} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+            </Box>
+            <Box sx={{ flex: 1 }}>
+              <Typography variant="h6" fontWeight="bold">{sel.label}</Typography>
+              <Divider sx={{ my: 1 }} />
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                {sel.detailText}
+              </Typography>
+              <Typography variant="subtitle1" color="primary" fontWeight="bold">
+                ${sel.price.toLocaleString()}
+              </Typography>
+            </Box>
+          </Paper>
+        );
+      })()}
     </Box>
   );
 }

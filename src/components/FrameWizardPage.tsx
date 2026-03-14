@@ -113,7 +113,7 @@ export function FrameWizardPage() {
     // Encode as base64 and navigate to canvas via full page load
     // (React Router navigate() won't re-trigger the App.tsx useEffect that reads ?data=)
     const encoded = btoa(JSON.stringify(layout));
-    window.location.href = `/configurator?data=${encoded}`;
+    window.location.href = `/configurator/?data=${encoded}`;
   }, [getSelectedComponents]);
 
   const stepPrice = getStepPrice(currentStep);

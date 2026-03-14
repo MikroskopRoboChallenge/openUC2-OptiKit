@@ -6,6 +6,8 @@ import {
   CardActionArea,
   Tooltip,
   IconButton,
+  Paper,
+  Divider,
 } from '@mui/material';
 import { Info, Lightbulb } from '@mui/icons-material';
 import { useFrameWizardStore } from '../../stores/frameWizardStore';
@@ -15,7 +17,9 @@ const LIGHT_OPTIONS: {
   value: LightSourceChoice;
   label: string;
   icon: string;
+  photo: string;
   description: string;
+  detailText: string;
   docsUrl: string;
   price: number;
 }[] = [
@@ -23,8 +27,11 @@ const LIGHT_OPTIONS: {
     value: 'single-led',
     label: 'Single White LED',
     icon: '/configurator/icons/uc2-singleled.svg',
+    photo: '/configurator/photos/single-led.svg',
     description:
       'Bright white LED for standard brightfield illumination. Simple, reliable, and cost-effective.',
+    detailText:
+      'The single white LED module provides even, high-intensity illumination for standard brightfield microscopy. It features adjustable brightness via PWM control through ImSwitch software. Power consumption: ~3W. Beam angle: 120°. Lifetime: >50,000h.',
     docsUrl: 'https://docs.openuc2.com/frame/led-single',
     price: 30,
   },
@@ -32,8 +39,11 @@ const LIGHT_OPTIONS: {
     value: 'led-matrix',
     label: 'Programmable LED Matrix',
     icon: '/configurator/icons/uc2-ledmatrix.svg',
+    photo: '/configurator/photos/led-matrix.svg',
     description:
       'NeoPixel 8×8 LED matrix for structured illumination, darkfield, DPC, and quantitative phase imaging.',
+    detailText:
+      'The 8×8 NeoPixel LED matrix unlocks advanced computational imaging: Differential Phase Contrast (DPC), darkfield, structured illumination, and Fourier Ptychography. Each LED is individually addressable (RGB). Controlled via I2C from the UC2e board. Compatible with ImSwitch matrix control plugin.',
     docsUrl: 'https://docs.openuc2.com/frame/led-matrix',
     price: 150,
   },
@@ -41,8 +51,11 @@ const LIGHT_OPTIONS: {
     value: 'led-ring',
     label: 'LED Ring (Köhler)',
     icon: '/configurator/icons/uc2-ledring.svg',
+    photo: '/configurator/photos/led-ring.svg',
     description:
       'LED ring with Köhler optics for uniform, high-quality illumination across the full field of view.',
+    detailText:
+      'The Köhler LED ring provides uniform, shadow-free illumination. The ring geometry combined with a condenser lens achieves Köhler illumination without manual alignment. Ideal for quantitative measurements and publication-quality imaging. Includes adjustable NA aperture.',
     docsUrl: 'https://docs.openuc2.com/frame/led-ring',
     price: 120,
   },
@@ -155,6 +168,29 @@ export function LightSourceStep() {
           </CardActionArea>
         </Card>
       </Box>
+
+      {/* Selected module detail panel */}
+      {(() => {
+        const sel = LIGHT_OPTIONS.find((o) => o.value === wizardState.lightSource);
+        if (!sel) return null;
+        return (
+          <Paper variant="outlined" sx={{ mt: 3, p: 2.5, display: 'flex', gap: 3, alignItems: 'flex-start' }}>
+            <Box sx={{ flexShrink: 0, width: 160, height: 120, borderRadius: 1, overflow: 'hidden', bgcolor: '#fafafa', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <img src={sel.photo} alt={sel.label} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+            </Box>
+            <Box sx={{ flex: 1 }}>
+              <Typography variant="h6" fontWeight="bold">{sel.label}</Typography>
+              <Divider sx={{ my: 1 }} />
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                {sel.detailText}
+              </Typography>
+              <Typography variant="subtitle1" color="primary" fontWeight="bold">
+                ${sel.price.toLocaleString()}
+              </Typography>
+            </Box>
+          </Paper>
+        );
+      })()}
     </Box>
   );
 }
