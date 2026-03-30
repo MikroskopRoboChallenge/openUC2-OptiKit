@@ -7,6 +7,14 @@ import { PhysicalModuleOverlay } from './PhysicalModuleOverlay';
 import type { KonvaEventObject } from 'konva/lib/Node';
 import type { Point } from '../types';
 import type Konva from 'konva';
+import {
+  Add as ZoomInIcon,
+  Remove as ZoomOutIcon,
+  CenterFocusStrong as CenterIcon,
+  ContentCopy as CopyIcon,
+  ContentPaste as PasteIcon,
+  Delete as DeleteIcon,
+} from '@mui/icons-material';
 
 /** Inline style for context-menu items */
 const ctxItemStyle: React.CSSProperties = {
@@ -70,7 +78,20 @@ export const GridCanvas: React.FC = () => {
     moveSelectedModules,
     addToSelection,
     clearSelection,
+    centerView,
   } = useAppStore();
+
+  // Programmatic zoom centred on the canvas middle
+  const handleZoomButton = useCallback((direction: 'in' | 'out') => {
+    const scaleBy = 1.3;
+    const oldScale = viewport.zoom;
+    const newScale = direction === 'in' ? oldScale * scaleBy : oldScale / scaleBy;
+    const clamped = Math.max(0.1, Math.min(3, newScale));
+    const cx = stageSize.width / 2;
+    const cy = stageSize.height / 2;
+    const pt = { x: (cx - viewport.pan.x) / oldScale, y: (cy - viewport.pan.y) / oldScale };
+    setViewport({ zoom: clamped, pan: { x: cx - pt.x * clamped, y: cy - pt.y * clamped } });
+  }, [viewport, stageSize, setViewport]);
 
   const activeLayer = layers.find(layer => layer.id === activeLayerId);
   const currentLayerIndex = activeLayer?.index ?? 0;
@@ -872,6 +893,83 @@ export const GridCanvas: React.FC = () => {
           )}
         </div>
       )}
+
+      {/* Floating zoom / action buttons */}
+      <div
+        style={{
+          position: 'absolute',
+          bottom: 12,
+          right: 12,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 4,
+          zIndex: 100,
+        }}
+      >
+        {/* Zoom controls */}
+        <button
+          onClick={() => handleZoomButton('in')}
+          aria-label="Zoom in"
+          style={fabStyle}
+          title="Zoom in"
+        ><ZoomInIcon sx={{ fontSize: 18 }} /></button>
+        <button
+          onClick={() => handleZoomButton('out')}
+          aria-label="Zoom out"
+          style={fabStyle}
+          title="Zoom out"
+        ><ZoomOutIcon sx={{ fontSize: 18 }} /></button>
+        <button
+          onClick={centerView}
+          aria-label="Center view"
+          style={fabStyle}
+          title="Center view"
+        ><CenterIcon sx={{ fontSize: 18 }} /></button>
+
+        {/* Clipboard / selection actions (only when something is selected) */}
+        {selectedItems.length > 0 && (
+          <>
+            <div style={{ height: 4 }} />
+            <button
+              onClick={copyToClipboard}
+              aria-label="Copy selection"
+              style={fabStyle}
+              title="Copy"
+            ><CopyIcon sx={{ fontSize: 16 }} /></button>
+            <button
+              onClick={pasteFromClipboard}
+              aria-label="Paste"
+              style={fabStyle}
+              title="Paste"
+            ><PasteIcon sx={{ fontSize: 16 }} /></button>
+            <button
+              onClick={deleteSelectedItems}
+              aria-label="Delete selection"
+              style={{ ...fabStyle, background: '#e53935', color: '#fff' }}
+              title="Delete"
+            ><DeleteIcon sx={{ fontSize: 16 }} /></button>
+          </>
+        )}
+      </div>
     </div>
   );
+};
+
+/** Shared style for the small floating action buttons */
+const fabStyle: React.CSSProperties = {
+  width: 34,
+  height: 34,
+  borderRadius: 8,
+  border: '1px solid rgba(0,0,0,0.12)',
+  background: '#fff',
+  color: '#333',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  cursor: 'pointer',
+  boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
+  padding: 0,
+  lineHeight: 1,
+  fontSize: 0,
+  touchAction: 'manipulation',
 };

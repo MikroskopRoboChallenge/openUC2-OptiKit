@@ -58,80 +58,81 @@ export const materialTheme = createTheme({
   typography: {
     fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
     h1: {
-      fontSize: '2.125rem',
+      fontSize: '1.75rem',
       fontWeight: 500,
       lineHeight: 1.235,
     },
     h2: {
-      fontSize: '1.5rem',
+      fontSize: '1.3rem',
       fontWeight: 500,
       lineHeight: 1.334,
     },
     h3: {
-      fontSize: '1.25rem',
+      fontSize: '1.1rem',
       fontWeight: 500,
       lineHeight: 1.6,
     },
     h4: {
-      fontSize: '1.125rem',
+      fontSize: '1rem',
       fontWeight: 500,
       lineHeight: 1.5,
     },
     h5: {
-      fontSize: '1rem',
+      fontSize: '0.875rem',
       fontWeight: 500,
       lineHeight: 1.5,
     },
     h6: {
-      fontSize: '0.875rem',
+      fontSize: '0.8125rem',
       fontWeight: 500,
       lineHeight: 1.57,
     },
     subtitle1: {
-      fontSize: '1rem',
+      fontSize: '0.875rem',
       fontWeight: 400,
       lineHeight: 1.75,
     },
     subtitle2: {
-      fontSize: '0.875rem',
+      fontSize: '0.8125rem',
       fontWeight: 500,
       lineHeight: 1.57,
     },
     body1: {
-      fontSize: '1rem',
+      fontSize: '0.875rem',
       fontWeight: 400,
       lineHeight: 1.5,
     },
     body2: {
-      fontSize: '0.875rem',
+      fontSize: '0.8125rem',
       fontWeight: 400,
       lineHeight: 1.43,
     },
     caption: {
-      fontSize: '0.75rem',
+      fontSize: '0.6875rem',
       fontWeight: 400,
       lineHeight: 1.66,
     },
     overline: {
-      fontSize: '0.75rem',
+      fontSize: '0.6875rem',
       fontWeight: 400,
       lineHeight: 2.66,
       textTransform: 'uppercase',
     },
   },
   shape: {
-    borderRadius: 8,
+    borderRadius: 6,
   },
-  spacing: 8,
+  spacing: 7,
   components: {
     MuiButton: {
       styleOverrides: {
         root: {
           textTransform: 'none',
           fontWeight: 500,
-          borderRadius: 8,
-          minHeight: 36,
-          padding: '6px 16px',
+          borderRadius: 6,
+          minHeight: 32,
+          padding: '4px 12px',
+          fontSize: '0.8125rem',
         },
         containedPrimary: {
           backgroundColor: brandColors.primary,
@@ -150,8 +151,8 @@ export const materialTheme = createTheme({
     MuiIconButton: {
       styleOverrides: {
         root: {
-          borderRadius: 8,
-          padding: 8,
+          borderRadius: 6,
+          padding: 6,
           '&:hover': {
             backgroundColor: 'rgba(30, 70, 112, 0.04)',
           },
@@ -161,7 +162,7 @@ export const materialTheme = createTheme({
     MuiCard: {
       styleOverrides: {
         root: {
-          borderRadius: 12,
+          borderRadius: 8,
           boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
           '&:hover': {
             boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
@@ -197,7 +198,7 @@ export const materialTheme = createTheme({
     MuiTabs: {
       styleOverrides: {
         root: {
-          minHeight: 48,
+          minHeight: 40,
         },
         indicator: {
           backgroundColor: brandColors.primary,
@@ -211,8 +212,8 @@ export const materialTheme = createTheme({
         root: {
           textTransform: 'none',
           fontWeight: 500,
-          fontSize: '0.875rem',
-          minHeight: 48,
+          fontSize: '0.8125rem',
+          minHeight: 40,
           '&.Mui-selected': {
             color: brandColors.primary,
           },

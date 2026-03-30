@@ -97,7 +97,7 @@ const MiniPhysicalIcon: React.FC<MiniPhysicalIconProps> = ({ module, size = 58 }
 };
 
 export const PartLibrary: React.FC = () => {
-  const { modules, loadModules } = useAppStore();
+  const { modules, loadModules, placeModule, placedModules, layers, activeLayerId } = useAppStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedGroup, setSelectedGroup] = useState<string>('all');
   const [showWizard, setShowWizard] = useState(false);
@@ -164,6 +164,34 @@ export const PartLibrary: React.FC = () => {
   });
 
   const groups = ['all', ...new Set(modules.map(m => m.group))];
+
+  const activeLayer = layers.find(layer => layer.id === activeLayerId);
+  const currentLayerIndex = activeLayer?.index ?? 0;
+
+  // Double-click / tap to place module at the next free grid position
+  const handleQuickPlace = (moduleId: string) => {
+    // Find the center of the visible grid area – just pick the next free spot
+    const occupied = new Set(
+      placedModules.map(m => `${m.position.x},${m.position.y}`)
+    );
+    // Try center-first spiral: 5,5 → 4,5 → 5,4 → 6,5 → …
+    for (let r = 0; r < 10; r++) {
+      for (let dx = -r; dx <= r; dx++) {
+        for (let dy = -r; dy <= r; dy++) {
+          if (Math.abs(dx) !== r && Math.abs(dy) !== r) continue;
+          const x = 5 + dx;
+          const y = 5 + dy;
+          if (x >= 0 && x < 10 && y >= 0 && y < 10 && !occupied.has(`${x},${y}`)) {
+            placeModule(moduleId, { x, y }, currentLayerIndex);
+            if ('vibrate' in navigator) navigator.vibrate(30);
+            return;
+          }
+        }
+      }
+    }
+    // Fallback: place at 0,0
+    placeModule(moduleId, { x: 0, y: 0 }, currentLayerIndex);
+  };
 
   const handleDragStart = (e: React.DragEvent, moduleId: string) => {
     e.dataTransfer.setData('moduleId', moduleId);
@@ -314,7 +342,7 @@ export const PartLibrary: React.FC = () => {
         sx={{
           cursor: 'grab',
           position: 'relative',
-          height: 120,
+          height: { xs: 90, sm: 100, md: 110 },
           transition: 'all 0.15s ease',
           userSelect: 'none',
           WebkitUserSelect: 'none',
@@ -328,17 +356,10 @@ export const PartLibrary: React.FC = () => {
             cursor: 'grabbing',
             transform: 'scale(0.98)',
           },
-          // Mobile-specific styles
-          '@media (max-width: 768px)': {
-            height: 100,
-            minHeight: 44, // Minimum touch target size
-            '&:active': {
-              transform: 'scale(0.95)',
-            },
-          },
         }}
         draggable
         onDragStart={(e) => handleDragStart(e, module.id)}
+        onDoubleClick={() => handleQuickPlace(module.id)}
         onTouchStart={(e) => handleTouchStart(e, module.id)}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
@@ -511,8 +532,8 @@ export const PartLibrary: React.FC = () => {
         <Box
           sx={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
-            gap: 2,
+            gridTemplateColumns: { xs: 'repeat(auto-fill, minmax(100px, 1fr))', sm: 'repeat(auto-fill, minmax(120px, 1fr))', md: 'repeat(auto-fill, minmax(130px, 1fr))' },
+            gap: 1.5,
           }}
         >
           {filteredModules.map(renderModuleTile)}
@@ -546,7 +567,7 @@ export const PartLibrary: React.FC = () => {
           }}
         >
           <DragIcon fontSize="small" />
-          Drag parts onto the canvas to place them
+          Drag or double-tap parts to place them
         </Typography>
       </Paper>
       

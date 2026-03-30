@@ -8,7 +8,13 @@ import {
   Divider,
   Box,
   Tooltip,
-  Button
+  Button,
+  Menu,
+  MenuItem,
+  ListItemIcon,
+  ListItemText,
+  useMediaQuery,
+  useTheme
 } from '@mui/material';
 import {
   Undo as UndoIcon,
@@ -36,7 +42,8 @@ import {
   SelectAll as SelectIcon,
   Delete as DeleteIcon,
   Memory as ImSwitchIcon,
-  Science as SimulationIcon
+  Science as SimulationIcon,
+  MoreVert as MoreVertIcon
 } from '@mui/icons-material';
 import { useAppStore } from '../stores/appStore';
 import { useSimulationStore } from '../stores/simulationStore';
@@ -46,11 +53,14 @@ import { ImSwitchConfigWizard } from './ImSwitchConfigWizard';
 export const Toolbar: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const isEditorPage = location.pathname === '/configurator' || location.pathname === '/configurator/' || location.pathname === '/';
   
   const [feedbackOpen, setFeedbackOpen] = React.useState(false);
   const [feedbackTrigger, setFeedbackTrigger] = React.useState<'download' | 'github' | 'manual'>('manual');
   const [imSwitchWizardOpen, setImSwitchWizardOpen] = React.useState(false);
+  const [moreMenuAnchor, setMoreMenuAnchor] = React.useState<null | HTMLElement>(null);
   
   const { 
     exportData, 
@@ -616,6 +626,106 @@ openUC2 team via GitHub repository
           </Tooltip>
           </Box>
         </Box>
+
+        {/* Mobile overflow menu — visible only on small screens */}
+        {isMobile && (
+          <>
+            <Tooltip title="More actions">
+              <IconButton
+                color="inherit"
+                onClick={(e) => setMoreMenuAnchor(e.currentTarget)}
+                size="small"
+              >
+                <MoreVertIcon />
+              </IconButton>
+            </Tooltip>
+            <Menu
+              anchorEl={moreMenuAnchor}
+              open={Boolean(moreMenuAnchor)}
+              onClose={() => setMoreMenuAnchor(null)}
+              slotProps={{ paper: { sx: { maxHeight: '70vh' } } }}
+            >
+              {/* Simulation */}
+              <MenuItem onClick={() => { useSimulationStore.getState().toggleSimulation(); setMoreMenuAnchor(null); }}>
+                <ListItemIcon><SimulationIcon color={useSimulationStore.getState().config.enabled ? 'secondary' : 'inherit'} fontSize="small" /></ListItemIcon>
+                <ListItemText>{useSimulationStore.getState().config.enabled ? 'Disable Ray Simulation' : 'Enable Ray Simulation'}</ListItemText>
+              </MenuItem>
+
+              {/* Annotation tools */}
+              <MenuItem onClick={() => { setAnnotationMode(annotationMode === 'line' ? 'none' : 'line'); setMoreMenuAnchor(null); }}>
+                <ListItemIcon><LineIcon color={annotationMode === 'line' ? 'secondary' : 'inherit'} fontSize="small" /></ListItemIcon>
+                <ListItemText>Draw Line</ListItemText>
+              </MenuItem>
+              <MenuItem onClick={() => { setAnnotationMode(annotationMode === 'arrow' ? 'none' : 'arrow'); setMoreMenuAnchor(null); }}>
+                <ListItemIcon><ArrowIcon color={annotationMode === 'arrow' ? 'secondary' : 'inherit'} fontSize="small" /></ListItemIcon>
+                <ListItemText>Draw Arrow</ListItemText>
+              </MenuItem>
+              <MenuItem onClick={() => { setAnnotationMode(annotationMode === 'optical-axis' ? 'none' : 'optical-axis'); setMoreMenuAnchor(null); }}>
+                <ListItemIcon><OpticalAxisIcon color={annotationMode === 'optical-axis' ? 'secondary' : 'inherit'} fontSize="small" /></ListItemIcon>
+                <ListItemText>Optical Axis</ListItemText>
+              </MenuItem>
+              <MenuItem onClick={() => { setAnnotationMode(annotationMode === 'text' ? 'none' : 'text'); setMoreMenuAnchor(null); }}>
+                <ListItemIcon><TextIcon color={annotationMode === 'text' ? 'secondary' : 'inherit'} fontSize="small" /></ListItemIcon>
+                <ListItemText>Add Text</ListItemText>
+              </MenuItem>
+
+              <Divider />
+
+              {/* Selection / view */}
+              <MenuItem onClick={() => { setSelectionMode(selectionMode === 'single' ? 'multiple' : 'single'); setMoreMenuAnchor(null); }}>
+                <ListItemIcon><SelectIcon color={selectionMode === 'multiple' ? 'secondary' : 'inherit'} fontSize="small" /></ListItemIcon>
+                <ListItemText>{selectionMode === 'single' ? 'Multi-Select' : 'Single Select'}</ListItemText>
+              </MenuItem>
+              <MenuItem onClick={() => { centerView(); setMoreMenuAnchor(null); }}>
+                <ListItemIcon><CenterIcon fontSize="small" /></ListItemIcon>
+                <ListItemText>Center View</ListItemText>
+              </MenuItem>
+
+              <Divider />
+
+              {/* File operations */}
+              <MenuItem onClick={() => { handleExport(); setMoreMenuAnchor(null); }}>
+                <ListItemIcon><SaveIcon fontSize="small" /></ListItemIcon>
+                <ListItemText>Save Layout</ListItemText>
+              </MenuItem>
+              <MenuItem onClick={() => { handleImport(); setMoreMenuAnchor(null); }}>
+                <ListItemIcon><ImportIcon fontSize="small" /></ListItemIcon>
+                <ListItemText>Import Layout</ListItemText>
+              </MenuItem>
+              <MenuItem onClick={() => { handleGenerateShareableLink(); setMoreMenuAnchor(null); }}>
+                <ListItemIcon><LinkIcon fontSize="small" /></ListItemIcon>
+                <ListItemText>Shareable Link</ListItemText>
+              </MenuItem>
+              <MenuItem onClick={() => { downloadScreenshot(); setMoreMenuAnchor(null); }}>
+                <ListItemIcon><ScreenshotIcon fontSize="small" /></ListItemIcon>
+                <ListItemText>Screenshot</ListItemText>
+              </MenuItem>
+              <MenuItem onClick={() => { handleShare(); setMoreMenuAnchor(null); }}>
+                <ListItemIcon><EmailIcon fontSize="small" /></ListItemIcon>
+                <ListItemText>Share via Email</ListItemText>
+              </MenuItem>
+              <MenuItem onClick={() => { handleSaveToGitHub(); setMoreMenuAnchor(null); }}>
+                <ListItemIcon><GitHubIcon fontSize="small" /></ListItemIcon>
+                <ListItemText>Upload to GitHub</ListItemText>
+              </MenuItem>
+
+              <Divider />
+
+              <MenuItem onClick={() => { handleClear(); setMoreMenuAnchor(null); }}>
+                <ListItemIcon><ClearIcon fontSize="small" /></ListItemIcon>
+                <ListItemText>Clear All</ListItemText>
+              </MenuItem>
+              <MenuItem onClick={() => { handleHelp(); setMoreMenuAnchor(null); }}>
+                <ListItemIcon><HelpIcon fontSize="small" /></ListItemIcon>
+                <ListItemText>Help</ListItemText>
+              </MenuItem>
+              <MenuItem onClick={() => { handleForum(); setMoreMenuAnchor(null); }}>
+                <ListItemIcon><ForumIcon fontSize="small" /></ListItemIcon>
+                <ListItemText>Forum</ListItemText>
+              </MenuItem>
+            </Menu>
+          </>
+        )}
           </>
         )}
 
