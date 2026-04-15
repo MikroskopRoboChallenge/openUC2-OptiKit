@@ -61,6 +61,8 @@ const GLB_STORE_BASE = 'https://raw.githubusercontent.com/openUC2/openUC2-OptiKi
 function addGLBStorePrefix(path: string | undefined): string | undefined {
   if (!path) return path;
   if (path.startsWith('http://') || path.startsWith('https://')) return path;
+  // Absolute URL path (e.g. /configurator/dev-glbs/…) — use as-is
+  if (path.startsWith('/')) return path;
   // Relative path — prepend GLB store base
   return GLB_STORE_BASE + path;
 }
