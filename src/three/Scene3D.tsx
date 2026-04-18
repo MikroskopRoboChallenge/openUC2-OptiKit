@@ -1,4 +1,4 @@
-import { Suspense, useState, useCallback } from 'react';
+import { Suspense, useState, useCallback, useRef } from 'react';
 import * as THREE from 'three';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Grid } from '@react-three/drei';
@@ -10,6 +10,7 @@ import {
   Rotate90DegreesCw as RotateTopIcon,
   Timeline as RaysIcon,
 } from '@mui/icons-material';
+import { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import { Cubes } from './Cubes';
 import { SelectionHUD } from './SelectionHUD';
 import { CubeGizmo } from './CubeGizmo';
@@ -17,18 +18,35 @@ import { Rays3D } from './Rays3D';
 import { useAppStore } from '../stores/appStore';
 import { useSimulationStore } from '../stores/simulationStore';
 import { useSettings3D, THEMES_3D } from './use3DSettings';
+import { useCameraState } from './useCameraState';
+import { NavToolbar, TweenRunner, CameraCapture } from './NavToolbar';
+import { makeTween } from './cameraUtils';
 import type { GizmoMode } from './CubeGizmo';
 
 // ─── Inner canvas content (needs R3F context) ────────────────────────────────
 
-function SceneContent({ gizmoMode, onDraggingChanged, orbitEnabled, showRays }: {
+function SceneContent({
+  gizmoMode,
+  onDraggingChanged,
+  orbitEnabled,
+  showRays,
+  controlsRef,
+  tweenRef,
+  cameraRef,
+}: {
   gizmoMode: GizmoMode;
   onDraggingChanged: (d: boolean) => void;
   orbitEnabled: boolean;
   showRays: boolean;
+  controlsRef: React.RefObject<OrbitControlsImpl | null>;
+  tweenRef: React.RefObject<ReturnType<typeof makeTween>>;
+  cameraRef: React.RefObject<THREE.PerspectiveCamera | null>;
 }) {
   const { settings } = useSettings3D();
   const theme = THEMES_3D[settings.theme];
+
+  // Session-storage camera persistence
+  useCameraState(controlsRef);
 
   return (
     <>
@@ -39,7 +57,27 @@ function SceneContent({ gizmoMode, onDraggingChanged, orbitEnabled, showRays }: 
       <directionalLight position={[200, 400, 200]} intensity={1.2} castShadow />
       <directionalLight position={[-200, 300, -200]} intensity={0.4} />
 
-      <OrbitControls makeDefault enabled={orbitEnabled} />
+      <OrbitControls
+        ref={controlsRef}
+        makeDefault
+        enabled={orbitEnabled}
+        enableDamping
+        dampingFactor={0.12}
+        minDistance={30}
+        maxDistance={3000}
+        maxPolarAngle={Math.PI * 0.85}
+        mouseButtons={{
+          LEFT: THREE.MOUSE.ROTATE,
+          MIDDLE: THREE.MOUSE.DOLLY,
+          RIGHT: THREE.MOUSE.PAN,
+        }}
+      />
+
+      {/* Tween runner — advances camera lerp each frame */}
+      <TweenRunner tweenRef={tweenRef} controlsRef={controlsRef} />
+
+      {/* Captures R3F camera into the DOM-accessible ref */}
+      <CameraCapture cameraRef={cameraRef} />
 
       {settings.showGrid && (
         <Grid
@@ -84,6 +122,11 @@ export function Scene3D({ gizmoMode, onGizmoModeChange }: Scene3DProps) {
   const { settings } = useSettings3D();
   const theme = THEMES_3D[settings.theme];
 
+  // Shared refs for NavToolbar ↔ Canvas bridge
+  const controlsRef = useRef<OrbitControlsImpl | null>(null);
+  const tweenRef = useRef(makeTween());
+  const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
+
   const showRays = simEnabled && simShowRays && localShowRays;
 
   const handleDraggingChanged = useCallback((d: boolean) => setIsDragging(d), []);
@@ -107,8 +150,14 @@ export function Scene3D({ gizmoMode, onGizmoModeChange }: Scene3DProps) {
           onDraggingChanged={handleDraggingChanged}
           orbitEnabled={!isDragging}
           showRays={showRays}
+          controlsRef={controlsRef}
+          tweenRef={tweenRef}
+          cameraRef={cameraRef}
         />
       </Canvas>
+
+      {/* Left-side navigation toolbar */}
+      <NavToolbar tweenRef={tweenRef} controlsRef={controlsRef} cameraRef={cameraRef} />
 
       {/* Gizmo mode toolbar overlay */}
       <Box
