@@ -1,8 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none" stroke="#ffc107" stroke-width="2">
-  <rect x="30" y="20" width="40" height="50" rx="4" fill="#fff3e0" stroke="#ffc107"/>
-  <circle cx="50" cy="38" r="10" fill="#ffc107" stroke="#f57f17"/>
-  <line x1="50" y1="28" x2="50" y2="48" stroke="#fff" stroke-width="1"/>
-  <line x1="40" y1="38" x2="60" y2="38" stroke="#fff" stroke-width="1"/>
-  <rect x="38" y="55" width="24" height="10" rx="2" fill="#e8eaed" stroke="#999"/>
-  <text x="50" y="95" text-anchor="middle" font-size="7" fill="#333">LED</text>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100%" height="100%" preserveAspectRatio="xMidYMid meet" fill="none" stroke="#111111" stroke-linecap="round" stroke-linejoin="round" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"><rect x="10" y="10" width="80" height="80" rx="8" ry="8" fill="#fafafa" stroke="#111111" stroke-width="4"/><line x1="14" y1="50.0" x2="86" y2="50.0" stroke="#444444" stroke-width="1" stroke-dasharray="6 4" opacity="0.55"/><rect x="20" y="36.0" width="20" height="28" rx="2" fill="#444444" stroke="#111111" stroke-width="1.4"/><path d="M 40 38.0 a 12 12 0 0 1 0 24 Z" fill="#a2ff00" stroke="#111111" stroke-width="1.4"/><line x1="52" y1="50.0" x2="84.45143490983756" y2="36.88876923044308" stroke="#a2ff00" stroke-width="1.4" opacity="0.85" /><line x1="52" y1="50.0" x2="87.0" y2="50.0" stroke="#a2ff00" stroke-width="1.4" opacity="0.85" /><line x1="52" y1="50.0" x2="84.45143490983756" y2="63.11123076955692" stroke="#a2ff00" stroke-width="1.4" opacity="0.85" /></svg>

@@ -1,1 +1,165 @@
-<svg width="385" height="381" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" overflow="hidden"><g transform="translate(-2195 -1200)"><g><path d="M2310.83 1285 2454.17 1285 2490 1320.83 2490 1500 2275 1500 2275 1320.83Z" stroke="#000000" stroke-width="27.5" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="8" stroke-opacity="1" fill="none" fill-rule="evenodd"/><path d="M2456.96 1293.29C2458.18 1330 2429.41 1360.75 2392.71 1361.96 2356 1363.18 2325.25 1334.41 2324.04 1297.71 2324.01 1296.97 2324 1296.24 2324 1295.5Z" stroke="#000000" stroke-width="27.5" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="8" stroke-opacity="1" fill="none" fill-rule="evenodd"/><text fill="#000000" fill-opacity="1" font-family="Arial,Arial_MSFontService,sans-serif" font-style="normal" font-variant="normal" font-weight="400" font-stretch="normal" font-size="64" text-anchor="start" direction="ltr" writing-mode="lr-tb" unicode-bidi="normal" text-decoration="none" transform="matrix(1 0 0 1 2318.92 1453)">10x</text></g></g></svg>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   viewBox="0 0 100 100"
+   width="100%"
+   height="100%"
+   preserveAspectRatio="xMidYMid meet"
+   fill="none"
+   stroke="#111111"
+   stroke-linecap="round"
+   stroke-linejoin="round"
+   font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+   version="1.1"
+   id="svg1164"
+   sodipodi:docname="objective-1x1.svg"
+   inkscape:version="1.2.2 (b0a84865, 2022-12-01)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs1168" />
+  <sodipodi:namedview
+     id="namedview1166"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     showgrid="false"
+     inkscape:zoom="5.1741848"
+     inkscape:cx="35.657791"
+     inkscape:cy="66.67717"
+     inkscape:window-width="1460"
+     inkscape:window-height="916"
+     inkscape:window-x="52"
+     inkscape:window-y="38"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg1164" />
+  <rect
+     x="10"
+     y="10"
+     width="80"
+     height="80"
+     rx="8"
+     ry="8"
+     fill="#fafafa"
+     stroke="#111111"
+     stroke-width="4"
+     id="rect1138" />
+  <line
+     x1="14"
+     y1="50.0"
+     x2="86"
+     y2="50.0"
+     stroke="#444444"
+     stroke-width="1"
+     stroke-dasharray="6 4"
+     opacity="0.55"
+     id="line1140" />
+  <rect
+     x="37.0"
+     y="18"
+     width="26"
+     height="14"
+     fill="#a1a1a1"
+     stroke="#111111"
+     stroke-width="1.6"
+     id="rect1142" />
+  <rect
+     x="32.763477"
+     y="29.67992"
+     width="34.97197"
+     height="29.156521"
+     fill="#a1a1a1"
+     stroke="#111111"
+     stroke-width="2.67792"
+     id="rect1142-1"
+     style="fill:#1a1a1a" />
+  <line
+     x1="37.0"
+     y1="21"
+     x2="63.0"
+     y2="21"
+     stroke="#111111"
+     stroke-width="0.6"
+     id="line1144" />
+  <line
+     x1="37.0"
+     y1="25"
+     x2="63.0"
+     y2="25"
+     stroke="#111111"
+     stroke-width="0.6"
+     id="line1146" />
+  <line
+     x1="37.0"
+     y1="29"
+     x2="63.0"
+     y2="29"
+     stroke="#111111"
+     stroke-width="0.6"
+     id="line1148" />
+  <path
+     d="M 32.230864,59.67479 H 68.348937 L 59.319419,72.348948 H 41.260382 Z"
+     fill="#202c3a"
+     stroke="#111111"
+     stroke-width="0.902111"
+     id="path1150"
+     style="fill:#1a1a1a" />
+  <rect
+     x="32.14537"
+     y="48.04438"
+     width="36.095791"
+     height="5.911242"
+     fill="#dc3545"
+     id="rect1152"
+     style="fill:#ffff00;stroke-width:1.08875" />
+  <text
+     x="50.0"
+     y="44"
+     text-anchor="middle"
+     font-size="9"
+     font-weight="800"
+     fill="#fff"
+     stroke="none"
+     id="text1154">10×</text>
+  <ellipse
+     cx="50"
+     cy="71.424561"
+     fill="#8eb6e8"
+     stroke="#111111"
+     stroke-width="0.947887"
+     id="circle1156"
+     rx="6.2260566"
+     ry="2.650614" />
+  <line
+     x1="42.0"
+     y1="81"
+     x2="50.0"
+     y2="86"
+     stroke="#1e6dd1"
+     stroke-width="1.2"
+     opacity="0.7"
+     id="line1158" />
+  <line
+     x1="50.0"
+     y1="81"
+     x2="50.0"
+     y2="86"
+     stroke="#1e6dd1"
+     stroke-width="1.2"
+     opacity="0.7"
+     id="line1160" />
+  <line
+     x1="58.0"
+     y1="81"
+     x2="50.0"
+     y2="86"
+     stroke="#1e6dd1"
+     stroke-width="1.2"
+     opacity="0.7"
+     id="line1162" />
+</svg>

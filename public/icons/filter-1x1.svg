@@ -1,6 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 50">
-  <rect x="5" y="5" width="40" height="40" fill="#16a085" stroke="#138d75" stroke-width="2" rx="4"/>
-  <rect x="15" y="15" width="20" height="20" fill="none" stroke="white" stroke-width="2"/>
-  <rect x="19" y="19" width="12" height="12" fill="none" stroke="white" stroke-width="1"/>
-  <text x="25" y="45" text-anchor="middle" font-size="8" fill="#333">FILTER</text>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100%" height="100%" preserveAspectRatio="xMidYMid meet" fill="none" stroke="#111111" stroke-linecap="round" stroke-linejoin="round" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"><rect x="10" y="10" width="80" height="80" rx="8" ry="8" fill="#fafafa" stroke="#111111" stroke-width="4"/><line x1="14" y1="50.0" x2="86" y2="50.0" stroke="#444444" stroke-width="1" stroke-dasharray="6 4" opacity="0.55"/><rect x="44.0" y="28" width="12" height="44" fill="#95d3a4" stroke="#111111" stroke-width="2.8"/><line x1="16" y1="42.0" x2="44.0" y2="42.0" stroke="#0046ff" stroke-width="1.8" opacity="0.85" /><line x1="16" y1="50.0" x2="44.0" y2="50.0" stroke="#4aff00" stroke-width="1.8" opacity="0.85" /><line x1="16" y1="58.0" x2="44.0" y2="58.0" stroke="#ff7600" stroke-width="1.8" opacity="0.85" /><line x1="56.0" y1="50.0" x2="84" y2="50.0" stroke="#4aff00" stroke-width="2.2" opacity="0.85" /><path d="M 68 28 L 74 28 L 76 22 L 78 28 L 84 28" fill="none" stroke="#111111" stroke-width="1.2"/></svg>

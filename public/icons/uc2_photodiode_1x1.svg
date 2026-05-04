@@ -1,1 +1,137 @@
-<svg width="774" height="412" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" overflow="hidden"><g transform="translate(-1031 -843)"><g><rect x="1412" y="860" width="378" height="378" stroke="#000000" stroke-width="27.5" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="8" stroke-opacity="1" fill="none"/><rect x="1331.5" y="1022.5" width="151" height="60.9998" stroke="#000000" stroke-width="4.58333" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="8" stroke-opacity="1" fill="#000000" fill-opacity="1"/><path d="M1336.35 1052.71C1275.55 1075.21 1214.76 1097.71 1174.5 1099.64 1134.24 1101.56 1112.39 1082.92 1094.79 1064.26 1077.2 1045.6 1064.93 1009.56 1068.94 987.687 1072.95 965.811 1096.18 945.065 1118.88 933.002 1141.58 920.938 1179.86 908.01 1205.13 915.306 1230.39 922.602 1260.94 946.032 1270.47 976.777 1279.99 1007.52 1280.37 1063.46 1262.27 1099.78 1244.16 1136.09 1203.01 1165.39 1161.85 1194.68" stroke="#000000" stroke-width="10.3125" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="8" stroke-opacity="1" fill="none" fill-rule="evenodd"/><path d="M1680.5 1049C1680.5 987.42 1696.84 937.5 1717 937.5 1737.16 937.5 1753.5 987.42 1753.5 1049 1753.5 1110.58 1737.16 1160.5 1717 1160.5 1696.84 1160.5 1680.5 1110.58 1680.5 1049Z" stroke="#172C51" stroke-width="9.16667" stroke-linecap="butt" stroke-linejoin="round" stroke-miterlimit="10" stroke-opacity="1" fill="#4472C4" fill-rule="evenodd" fill-opacity="1"/></g></g></svg>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   viewBox="0 0 200 100"
+   width="100%"
+   height="100%"
+   preserveAspectRatio="xMidYMid meet"
+   fill="none"
+   stroke="#111111"
+   stroke-linecap="round"
+   stroke-linejoin="round"
+   font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+   version="1.1"
+   id="svg6200"
+   sodipodi:docname="uc2_photodiode_1x1.svg"
+   inkscape:version="1.2.2 (b0a84865, 2022-12-01)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs6204" />
+  <sodipodi:namedview
+     id="namedview6202"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     showgrid="false"
+     inkscape:zoom="2.36"
+     inkscape:cx="100.21186"
+     inkscape:cy="50"
+     inkscape:window-width="1460"
+     inkscape:window-height="916"
+     inkscape:window-x="52"
+     inkscape:window-y="38"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg6200" />
+  <rect
+     x="101.10169"
+     y="10.423728"
+     width="80"
+     height="80"
+     rx="8"
+     ry="8"
+     fill="#fafafa"
+     stroke="#111111"
+     stroke-width="4"
+     id="rect5079" />
+  <line
+     x1="99.826271"
+     y1="10.2"
+     x2="99.826271"
+     y2="90.199997"
+     stroke="#111111"
+     stroke-width="0.8"
+     stroke-dasharray="2, 3"
+     opacity="0.35"
+     id="line6172" />
+  <line
+     x1="13.82627"
+     y1="50.200001"
+     x2="185.82628"
+     y2="50.200001"
+     stroke="#444444"
+     stroke-width="1"
+     stroke-dasharray="6, 4"
+     opacity="0.55"
+     id="line6174" />
+  <circle
+     cx="31.826269"
+     cy="50.200001"
+     r="14"
+     fill="#444444"
+     stroke="#111111"
+     stroke-width="2"
+     id="circle6176" />
+  <circle
+     cx="31.826269"
+     cy="50.200001"
+     r="9"
+     fill="#202c3a"
+     stroke="#111111"
+     stroke-width="1"
+     id="circle6178" />
+  <rect
+     x="43.826271"
+     y="36.200001"
+     width="20"
+     height="28"
+     rx="3"
+     fill="#444444"
+     stroke="#111111"
+     stroke-width="1.6"
+     id="rect6180" />
+  <line
+     x1="63.455952"
+     y1="44.200001"
+     x2="125.02709"
+     y2="44.200001"
+     stroke="#111111"
+     stroke-width="1.6017"
+     id="line6182" />
+  <line
+     x1="63.4674"
+     y1="56.200001"
+     x2="125.01565"
+     y2="56.200001"
+     stroke="#111111"
+     stroke-width="1.60141"
+     id="line6184" />
+  <path
+     d="m 132.47034,42.623729 v 16 l 12,-8 z"
+     fill="#111111"
+     stroke="#111111"
+     stroke-width="1"
+     id="path6186" />
+  <line
+     x1="145.74152"
+     y1="41.776272"
+     x2="145.74152"
+     y2="57.776272"
+     stroke="#111111"
+     stroke-width="2"
+     id="line6188" />
+  <line
+     x1="13.82627"
+     y1="50.200001"
+     x2="17.826269"
+     y2="50.200001"
+     stroke="#f5a524"
+     stroke-width="2"
+     opacity="0.85"
+     id="line6198" />
+</svg>

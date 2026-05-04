@@ -1,1 +1,297 @@
-<svg width="1545" height="412" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" overflow="hidden"><g transform="translate(-1530 -935)"><g><rect x="0" y="0" width="378" height="378" stroke="#000000" stroke-width="27.5" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="8" stroke-opacity="1" fill="none" transform="matrix(1.83697e-16 1 1 -1.83697e-16 1547 951)"/><rect x="0" y="0" width="62.0002" height="151" stroke="#000000" stroke-width="4.58333" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="8" stroke-opacity="1" fill="#000000" fill-opacity="1" transform="matrix(-6.12323e-17 -1 -1 6.12323e-17 1966.5 1165.5)"/><path d="M245 179.289C180.4 183.967 115.8 188.644 76.6311 179.289 37.462 169.933 21.6768 145.958 9.98473 123.153-1.70739 100.348-3.4613 62.3402 6.47727 42.4592 16.4158 22.5781 44.4769 9.12921 69.6154 3.86635 94.7539-1.3965 135.092-3.15079 157.308 10.8831 179.523 24.9171 202.323 55.9085 202.908 88.0692 203.492 120.23 188.293 174.026 160.816 203.848 133.339 233.669 85.6923 250.334 38.0462 267" stroke="#000000" stroke-width="10.3125" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="8" stroke-opacity="1" fill="none" fill-rule="evenodd" transform="matrix(-1 0 0 1 2200 951)"/><rect x="0" y="0" width="378" height="758" stroke="#000000" stroke-width="27.5" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="8" stroke-opacity="1" fill="#FF0000" fill-opacity="1" transform="matrix(1.83697e-16 1 1 -1.83697e-16 2300 951)"/></g></g></svg>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   viewBox="0 0 400 100"
+   width="100%"
+   height="100%"
+   preserveAspectRatio="xMidYMid meet"
+   fill="none"
+   stroke="#111111"
+   stroke-linecap="round"
+   stroke-linejoin="round"
+   font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+   version="1.1"
+   id="svg7098"
+   sodipodi:docname="uc2-fibercoupledlaser.svg"
+   inkscape:version="1.2.2 (b0a84865, 2022-12-01)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs7102" />
+  <sodipodi:namedview
+     id="namedview7100"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     showgrid="false"
+     inkscape:zoom="1.5083367"
+     inkscape:cx="199.22607"
+     inkscape:cy="159.77865"
+     inkscape:window-width="1460"
+     inkscape:window-height="916"
+     inkscape:window-x="52"
+     inkscape:window-y="38"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg7098" />
+  <rect
+     x="-390"
+     y="10"
+     width="380"
+     height="80"
+     rx="8"
+     ry="8"
+     fill="#fafafa"
+     stroke="#111111"
+     stroke-width="4"
+     id="rect7038"
+     transform="scale(-1,1)" />
+  <line
+     x1="300"
+     y1="10"
+     x2="300"
+     y2="90"
+     stroke="#111111"
+     stroke-width="0.8"
+     stroke-dasharray="2, 3"
+     opacity="0.35"
+     id="line7040" />
+  <line
+     x1="200"
+     y1="10"
+     x2="200"
+     y2="90"
+     stroke="#111111"
+     stroke-width="0.8"
+     stroke-dasharray="2, 3"
+     opacity="0.35"
+     id="line7042" />
+  <line
+     x1="100"
+     y1="10"
+     x2="100"
+     y2="90"
+     stroke="#111111"
+     stroke-width="0.8"
+     stroke-dasharray="2, 3"
+     opacity="0.35"
+     id="line7044" />
+  <line
+     x1="386"
+     y1="50"
+     x2="14"
+     y2="50"
+     stroke="#444444"
+     stroke-width="1"
+     stroke-dasharray="6, 4"
+     opacity="0.55"
+     id="line7046" />
+  <rect
+     x="-376"
+     y="28"
+     width="90"
+     height="44"
+     rx="4"
+     fill="#444444"
+     stroke="#111111"
+     stroke-width="2"
+     id="rect7048"
+     transform="scale(-1,1)" />
+  <text
+     x="329.55078"
+     y="55"
+     text-anchor="middle"
+     font-size="14px"
+     font-weight="800"
+     fill="#ffffff"
+     stroke="none"
+     id="text7050">LASER</text>
+  <line
+     x1="368"
+     y1="23"
+     x2="368"
+     y2="28"
+     stroke="#111111"
+     stroke-width="1.2"
+     id="line7052" />
+  <line
+     x1="368"
+     y1="72"
+     x2="368"
+     y2="77"
+     stroke="#111111"
+     stroke-width="1.2"
+     id="line7054" />
+  <line
+     x1="358"
+     y1="23"
+     x2="358"
+     y2="28"
+     stroke="#111111"
+     stroke-width="1.2"
+     id="line7056" />
+  <line
+     x1="358"
+     y1="72"
+     x2="358"
+     y2="77"
+     stroke="#111111"
+     stroke-width="1.2"
+     id="line7058" />
+  <line
+     x1="348"
+     y1="23"
+     x2="348"
+     y2="28"
+     stroke="#111111"
+     stroke-width="1.2"
+     id="line7060" />
+  <line
+     x1="348"
+     y1="72"
+     x2="348"
+     y2="77"
+     stroke="#111111"
+     stroke-width="1.2"
+     id="line7062" />
+  <line
+     x1="338"
+     y1="23"
+     x2="338"
+     y2="28"
+     stroke="#111111"
+     stroke-width="1.2"
+     id="line7064" />
+  <line
+     x1="338"
+     y1="72"
+     x2="338"
+     y2="77"
+     stroke="#111111"
+     stroke-width="1.2"
+     id="line7066" />
+  <line
+     x1="328"
+     y1="23"
+     x2="328"
+     y2="28"
+     stroke="#111111"
+     stroke-width="1.2"
+     id="line7068" />
+  <line
+     x1="328"
+     y1="72"
+     x2="328"
+     y2="77"
+     stroke="#111111"
+     stroke-width="1.2"
+     id="line7070" />
+  <line
+     x1="318"
+     y1="23"
+     x2="318"
+     y2="28"
+     stroke="#111111"
+     stroke-width="1.2"
+     id="line7072" />
+  <line
+     x1="318"
+     y1="72"
+     x2="318"
+     y2="77"
+     stroke="#111111"
+     stroke-width="1.2"
+     id="line7074" />
+  <line
+     x1="308"
+     y1="23"
+     x2="308"
+     y2="28"
+     stroke="#111111"
+     stroke-width="1.2"
+     id="line7076" />
+  <line
+     x1="308"
+     y1="72"
+     x2="308"
+     y2="77"
+     stroke="#111111"
+     stroke-width="1.2"
+     id="line7078" />
+  <line
+     x1="298"
+     y1="23"
+     x2="298"
+     y2="28"
+     stroke="#111111"
+     stroke-width="1.2"
+     id="line7080" />
+  <line
+     x1="298"
+     y1="72"
+     x2="298"
+     y2="77"
+     stroke="#111111"
+     stroke-width="1.2"
+     id="line7082" />
+  <rect
+     x="-286"
+     y="43"
+     width="20"
+     height="14"
+     fill="#444444"
+     stroke="#111111"
+     stroke-width="1.4"
+     id="rect7084"
+     transform="scale(-1,1)" />
+  <circle
+     cx="-266"
+     cy="50"
+     r="4"
+     fill="#ffffff"
+     stroke="#111111"
+     stroke-width="1.2"
+     id="circle7086"
+     transform="scale(-1,1)" />
+  <path
+     d="M 262,50 Q 120,80 22,50"
+     fill="none"
+     stroke="#111111"
+     stroke-width="2.6"
+     id="path7088" />
+  <path
+     d="M 262,50 Q 120,80 22,50"
+     fill="none"
+     stroke="#dc3545"
+     stroke-width="1"
+     id="path7090" />
+  <circle
+     cx="-22"
+     cy="50"
+     r="5"
+     fill="#dc3545"
+     stroke="#111111"
+     stroke-width="1.4"
+     id="circle7092"
+     transform="scale(-1,1)" />
+  <path
+     d="m 24,17 -5,8 h 10 z"
+     fill="#f5a524"
+     stroke="#111111"
+     stroke-width="0.8"
+     id="path7094" />
+  <text
+     x="-24"
+     y="26"
+     text-anchor="middle"
+     font-size="8px"
+     font-weight="800"
+     fill="#111111"
+     stroke="none"
+     id="text7096"
+     transform="scale(-1,1)">!</text>
+</svg>

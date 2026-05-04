@@ -1,14 +1,1 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<svg width="50" height="50" viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg">
-  <!-- Background -->
-  <rect width="50" height="50" fill="#6c757d" stroke="#5a6268" stroke-width="2"/>
-  
-  <!-- Question mark -->
-  <text x="25" y="32" font-family="Arial, sans-serif" font-size="20" font-weight="bold" text-anchor="middle" fill="white">?</text>
-  
-  <!-- Corner decorations -->
-  <circle cx="8" cy="8" r="2" fill="white" opacity="0.7"/>
-  <circle cx="42" cy="8" r="2" fill="white" opacity="0.7"/>
-  <circle cx="8" cy="42" r="2" fill="white" opacity="0.7"/>
-  <circle cx="42" cy="42" r="2" fill="white" opacity="0.7"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100%" height="100%" preserveAspectRatio="xMidYMid meet" fill="none" stroke="#111111" stroke-linecap="round" stroke-linejoin="round" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"><rect x="10" y="10" width="80" height="80" rx="8" ry="8" fill="#fafafa" stroke="#111111" stroke-width="4"/><text x="50.0" y="67.6" text-anchor="middle" font-size="55.00000000000001" font-weight="900" fill="#444444" stroke="none">?</text><text x="50.0" y="80" text-anchor="middle" font-size="5.0" font-weight="700" fill="#444444" stroke="none">1×1</text></svg>
