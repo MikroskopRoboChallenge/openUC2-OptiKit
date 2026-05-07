@@ -723,52 +723,30 @@ export const ImSwitchConfigWizard: React.FC<ImSwitchConfigWizardProps> = ({
                       />
                     }
                     label={
-                      <Box>
-                        <Typography variant="body1">
-                          {controller.name}
+                      <Box component="span" sx={{ display: 'inline-flex', flexDirection: 'column' }}>
+                        <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>
+                          <Typography variant="body1" component="span">
+                            {controller.name}
+                          </Typography>
                           {!hasRequiredHardware && (
-                            <Chip 
-                              label="Hardware Missing" 
-                              size="small" 
-                              color="warning" 
-                              sx={{ ml: 1 }} 
+                            <Chip
+                              label="Hardware Missing"
+                              size="small"
+                              color="warning"
                             />
                           )}
-                        </Typography>
-                        <Typography variant="body2" color="textSecondary">
+                        </Box>
+                        <Typography variant="body2" component="span" color="textSecondary">
                           {controller.description}
                         </Typography>
                         {controller.dependencies && (
-                          <Typography variant="caption" color="textSecondary">
+                          <Typography variant="caption" component="span" color="textSecondary">
                             Requires: {controller.dependencies.join(', ')}
                           </Typography>
                         )}
                       </Box>
                     }
                   />
-                  {/* Show JSON editor inline only when this widget is enabled and has a config fragment */}
-                  {selectedControllers.includes(controller.id) && WIDGET_TOPLEVEL_KEYS[controller.id] && (
-                    <Box sx={{ ml: 4, mb: 1 }}>
-                      {WIDGET_TOPLEVEL_KEYS[controller.id].map(sectionKey => (
-                        (imSwitchConfig as Record<string, unknown>)[sectionKey] !== undefined && (
-                          <Accordion key={sectionKey} disableGutters sx={{ boxShadow: 1 }}>
-                            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                              <Typography variant="body2" sx={{ fontWeight: 500 }}>{sectionKey}</Typography>
-                            </AccordionSummary>
-                            <AccordionDetails>
-                              <ImSwitchJsonEditor
-                                title=""
-                                configKey={sectionKey}
-                                value={(imSwitchConfig as Record<string, unknown>)[sectionKey]}
-                                onChange={handleSectionEdit}
-                                schemaOnly
-                              />
-                            </AccordionDetails>
-                          </Accordion>
-                        )
-                      ))}
-                    </Box>
-                  )}
                   </Box>
                 );
               })}
@@ -822,19 +800,53 @@ export const ImSwitchConfigWizard: React.FC<ImSwitchConfigWizardProps> = ({
                     <Typography variant="subtitle1">Available Widgets ({selectedControllers.length})</Typography>
                   </AccordionSummary>
                   <AccordionDetails>
-                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
                       {selectedControllers.map(controllerId => {
                         const controller = controllerDatabase.find(c => c.id === controllerId);
                         return (
-                          <Chip 
-                            key={controllerId} 
-                            label={controller?.name || controllerId} 
-                            variant="outlined" 
+                          <Chip
+                            key={controllerId}
+                            label={controller?.name || controllerId}
+                            variant="outlined"
                             size="small"
                           />
                         );
                       })}
                     </Box>
+                    {/* Widget-specific config editors — only shown for widgets that have a config fragment */}
+                    {selectedControllers.some(id => WIDGET_TOPLEVEL_KEYS[id]) && (
+                      <Box>
+                        <Typography variant="subtitle2" sx={{ mb: 1 }}>Widget Configuration</Typography>
+                        {selectedControllers.map(controllerId => {
+                          const keys = WIDGET_TOPLEVEL_KEYS[controllerId];
+                          if (!keys) return null;
+                          const controller = controllerDatabase.find(c => c.id === controllerId);
+                          return (
+                            <Accordion key={controllerId} disableGutters sx={{ boxShadow: 1, mb: 0.5 }}>
+                              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                                <Typography variant="body2" sx={{ fontWeight: 500 }}>{controller?.name ?? controllerId}</Typography>
+                              </AccordionSummary>
+                              <AccordionDetails>
+                                {keys.map(sectionKey => (
+                                  (imSwitchConfig as Record<string, unknown>)[sectionKey] !== undefined && (
+                                    <Box key={sectionKey} sx={{ mb: 1 }}>
+                                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>{sectionKey}</Typography>
+                                      <ImSwitchJsonEditor
+                                        title=""
+                                        configKey={sectionKey}
+                                        value={(imSwitchConfig as Record<string, unknown>)[sectionKey]}
+                                        onChange={handleSectionEdit}
+                                        schemaOnly
+                                      />
+                                    </Box>
+                                  )
+                                ))}
+                              </AccordionDetails>
+                            </Accordion>
+                          );
+                        })}
+                      </Box>
+                    )}
                   </AccordionDetails>
                 </Accordion>
               </Box>

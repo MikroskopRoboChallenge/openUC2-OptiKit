@@ -1,11 +1,46 @@
 {
   "controllers": [
-    { "id": "settings", "name": "Settings", "description": "Basic application settings and configuration", "category": "widget" },
-    { "id": "view", "name": "View", "description": "Camera view and image display", "category": "widget", "dependencies": ["camera"] },
-    { "id": "recording", "name": "Recording", "description": "Video and image recording functionality", "category": "widget", "dependencies": ["camera"] },
-    { "id": "image", "name": "Image", "description": "Image processing and analysis tools", "category": "widget", "dependencies": ["camera"] },
-    { "id": "laser", "name": "Laser", "description": "Laser control and management", "category": "widget", "dependencies": ["laser"] },
-    { "id": "positioner", "name": "Positioner", "description": "Stage and positioning controls", "category": "widget", "dependencies": ["stage"] },
+    {
+      "id": "settings",
+      "name": "Settings",
+      "description": "Basic application settings and configuration",
+      "category": "widget"
+    },
+    {
+      "id": "view",
+      "name": "View",
+      "description": "Camera view and image display",
+      "category": "widget",
+      "dependencies": ["camera"]
+    },
+    {
+      "id": "recording",
+      "name": "Recording",
+      "description": "Video and image recording functionality",
+      "category": "widget",
+      "dependencies": ["camera"]
+    },
+    {
+      "id": "image",
+      "name": "Image",
+      "description": "Image processing and analysis tools",
+      "category": "widget",
+      "dependencies": ["camera"]
+    },
+    {
+      "id": "laser",
+      "name": "Laser",
+      "description": "Laser control and management",
+      "category": "widget",
+      "dependencies": ["laser"]
+    },
+    {
+      "id": "positioner",
+      "name": "Positioner",
+      "description": "Stage and positioning controls",
+      "category": "widget",
+      "dependencies": ["stage"]
+    },
     {
       "id": "autofocus",
       "name": "Autofocus",
@@ -32,7 +67,12 @@
       "configFile": "widgets/mct.json",
       "topLevelKeys": ["mct"]
     },
-    { "id": "uc2config", "name": "UC2Config", "description": "UC2 system configuration tools", "category": "widget" },
+    {
+      "id": "uc2config",
+      "name": "UC2Config",
+      "description": "UC2 system configuration tools",
+      "category": "widget"
+    },
     {
       "id": "pixelcalibration",
       "name": "Pixel Calibration",
@@ -51,9 +91,27 @@
       "configFile": "widgets/histoscan.json",
       "topLevelKeys": ["HistoScan"]
     },
-    { "id": "joystick", "name": "Joystick", "description": "Manual stage control with joystick", "category": "widget", "dependencies": ["stage"] },
-    { "id": "flatfield", "name": "Flatfield", "description": "Flat field correction", "category": "widget", "dependencies": ["camera"] },
-    { "id": "roiscan", "name": "ROI Scan", "description": "Region of interest scanning", "category": "widget", "dependencies": ["camera", "stage"] },
+    {
+      "id": "joystick",
+      "name": "Joystick",
+      "description": "Manual stage control with joystick",
+      "category": "widget",
+      "dependencies": ["stage"]
+    },
+    {
+      "id": "flatfield",
+      "name": "Flatfield",
+      "description": "Flat field correction",
+      "category": "widget",
+      "dependencies": ["camera"]
+    },
+    {
+      "id": "roiscan",
+      "name": "ROI Scan",
+      "description": "Region of interest scanning",
+      "category": "widget",
+      "dependencies": ["camera", "stage"]
+    },
     {
       "id": "objective",
       "name": "Objective",
@@ -79,10 +137,31 @@
       "configFile": "widgets/lightsheet.json",
       "topLevelKeys": ["lightsheet"]
     },
-    { "id": "esp32infoscreen", "name": "ESP32 Info Screen", "description": "ESP32 device information and diagnostics", "category": "widget" },
-    { "id": "wifi", "name": "WiFi", "description": "WiFi connectivity management", "category": "widget" },
-    { "id": "liveview", "name": "LiveView", "description": "Live camera stream view", "category": "widget", "dependencies": ["camera"] },
-    { "id": "ledmatrix", "name": "LEDMatrix", "description": "LED matrix pattern control", "category": "widget" },
+    {
+      "id": "esp32infoscreen",
+      "name": "ESP32 Info Screen",
+      "description": "ESP32 device information and diagnostics",
+      "category": "widget"
+    },
+    {
+      "id": "wifi",
+      "name": "WiFi",
+      "description": "WiFi connectivity management",
+      "category": "widget"
+    },
+    {
+      "id": "liveview",
+      "name": "LiveView",
+      "description": "Live camera stream view",
+      "category": "widget",
+      "dependencies": ["camera"]
+    },
+    {
+      "id": "ledmatrix",
+      "name": "LEDMatrix",
+      "description": "LED matrix pattern control",
+      "category": "widget"
+    },
     {
       "id": "dpc",
       "name": "DPC",
@@ -92,13 +171,54 @@
       "configFile": "widgets/dpc.json",
       "topLevelKeys": ["dpc"]
     },
-    { "id": "holo", "name": "Holo", "description": "Holographic reconstruction", "category": "widget", "dependencies": ["camera"] },
-    { "id": "offaxisholo", "name": "OffAxisHolo", "description": "Off-axis holographic imaging", "category": "widget", "dependencies": ["camera"] },
-    { "id": "fft", "name": "FFT", "description": "Fourier transform display", "category": "widget", "dependencies": ["camera"] },
-    { "id": "triggeracquisition", "name": "TriggerAcquisition", "description": "Hardware-triggered acquisition", "category": "widget", "dependencies": ["camera"] },
-    { "id": "stagescanaquisition", "name": "StageScanAcquisition", "description": "Stage-scanning tiled acquisition", "category": "widget", "dependencies": ["camera", "stage"] },
-    { "id": "galvoscanner", "name": "GalvoScanner", "description": "Galvo mirror scanner control", "category": "widget" },
-    { "id": "composite", "name": "Composite", "description": "Multi-channel image composition", "category": "widget", "dependencies": ["camera"] },
+    {
+      "id": "holo",
+      "name": "Holo",
+      "description": "Holographic reconstruction",
+      "category": "widget",
+      "dependencies": ["camera"]
+    },
+    {
+      "id": "offaxisholo",
+      "name": "OffAxisHolo",
+      "description": "Off-axis holographic imaging",
+      "category": "widget",
+      "dependencies": ["camera"]
+    },
+    {
+      "id": "fft",
+      "name": "FFT",
+      "description": "Fourier transform display",
+      "category": "widget",
+      "dependencies": ["camera"]
+    },
+    {
+      "id": "triggeracquisition",
+      "name": "TriggerAcquisition",
+      "description": "Hardware-triggered acquisition",
+      "category": "widget",
+      "dependencies": ["camera"]
+    },
+    {
+      "id": "stagescanaquisition",
+      "name": "StageScanAcquisition",
+      "description": "Stage-scanning tiled acquisition",
+      "category": "widget",
+      "dependencies": ["camera", "stage"]
+    },
+    {
+      "id": "galvoscanner",
+      "name": "GalvoScanner",
+      "description": "Galvo mirror scanner control",
+      "category": "widget"
+    },
+    {
+      "id": "composite",
+      "name": "Composite",
+      "description": "Multi-channel image composition",
+      "category": "widget",
+      "dependencies": ["camera"]
+    },
     {
       "id": "imswitch_server",
       "name": "ImSwitchServer",
@@ -107,15 +227,63 @@
       "configFile": "widgets/pyro_server.json",
       "topLevelKeys": ["pyroServerInfo"]
     },
-    { "id": "hypha", "name": "Hypha", "description": "Hypha cloud integration", "category": "widget" },
-    { "id": "arkitekt", "name": "Arkitekt", "description": "Arkitekt workflow integration", "category": "widget" },
-    { "id": "flowstop", "name": "FlowStop", "description": "Microfluidic flow control", "category": "widget" },
-    { "id": "holisheet", "name": "HoliSheet", "description": "Light sheet control", "category": "widget", "dependencies": ["laser", "camera"] },
-    { "id": "histogramm", "name": "Histogramm", "description": "Live image histogram", "category": "widget", "dependencies": ["camera"] },
-    { "id": "demo", "name": "Demo", "description": "Demo mode for testing", "category": "widget" },
-    { "id": "mazegame", "name": "MazeGame", "description": "Stage calibration game", "category": "widget", "dependencies": ["stage"] },
-    { "id": "goniometer", "name": "Goniometer", "description": "Angular measurement and control", "category": "widget" },
-    { "id": "workflow", "name": "Workflow", "description": "Automated workflow execution", "category": "widget" },
+    {
+      "id": "hypha",
+      "name": "Hypha",
+      "description": "Hypha cloud integration",
+      "category": "widget"
+    },
+    {
+      "id": "arkitekt",
+      "name": "Arkitekt",
+      "description": "Arkitekt workflow integration",
+      "category": "widget"
+    },
+    {
+      "id": "flowstop",
+      "name": "FlowStop",
+      "description": "Microfluidic flow control",
+      "category": "widget"
+    },
+    {
+      "id": "holisheet",
+      "name": "HoliSheet",
+      "description": "Light sheet control",
+      "category": "widget",
+      "dependencies": ["laser", "camera"]
+    },
+    {
+      "id": "histogramm",
+      "name": "Histogramm",
+      "description": "Live image histogram",
+      "category": "widget",
+      "dependencies": ["camera"]
+    },
+    {
+      "id": "demo",
+      "name": "Demo",
+      "description": "Demo mode for testing",
+      "category": "widget"
+    },
+    {
+      "id": "mazegame",
+      "name": "MazeGame",
+      "description": "Stage calibration game",
+      "category": "widget",
+      "dependencies": ["stage"]
+    },
+    {
+      "id": "goniometer",
+      "name": "Goniometer",
+      "description": "Angular measurement and control",
+      "category": "widget"
+    },
+    {
+      "id": "workflow",
+      "name": "Workflow",
+      "description": "Automated workflow execution",
+      "category": "widget"
+    },
     {
       "id": "nidaq",
       "name": "NIDAQ",
