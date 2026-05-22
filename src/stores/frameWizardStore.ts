@@ -5,6 +5,7 @@ import type {
   LensOption,
   CameraOption,
   FluorescenceOption,
+  FluoBundleOption,
   FrameComponentPlacement,
   NyquistResult,
 } from '../types/frameWizard';
@@ -19,6 +20,7 @@ interface FrameWizardStore {
   lenses: LensOption[];
   cameras: CameraOption[];
   fluorescenceOptions: FluorescenceOption[];
+  fluoBundles: FluoBundleOption[];
 
   // Loading state
   isLoading: boolean;
@@ -34,6 +36,7 @@ interface FrameWizardStore {
   setLenses: (lenses: LensOption[]) => void;
   setCameras: (cameras: CameraOption[]) => void;
   setFluorescenceOptions: (options: FluorescenceOption[]) => void;
+  setFluoBundles: (bundles: FluoBundleOption[]) => void;
   setIsLoading: (loading: boolean) => void;
 
   // Computed
@@ -43,8 +46,8 @@ interface FrameWizardStore {
   computeNyquist: () => NyquistResult | null;
 }
 
-// 11 steps: Changer → Objectives → Revolver → Illumination → Fluorescence → Camera → Autofocus → Overview Camera → Control Inputs → Sample Holders → Summary
-export const TOTAL_STEPS = 11;
+// 10 steps: Changer → Objectives → Illumination → Fluorescence → Camera → Autofocus → Overview Camera → Control Inputs → Sample Holders → Summary
+export const TOTAL_STEPS = 10;
 
 // Fixed tube lens used in all configurations (Olympus infinity correction, 180 mm).
 const FIXED_TUBE_LENS_FL_MM = 180;
@@ -92,6 +95,8 @@ const defaultWizardState: FrameWizardState = {
   condenser: 'abbe',
   brightfieldModes: ['bf-only'],
   hasFluorescence: false,
+  fluoBundle: '',
+  fluoCustomNotes: '',
   fluoLightSource: 'none',
   dichroic: 'none',
   fluorescenceChannels: [],
@@ -113,6 +118,7 @@ export const useFrameWizardStore = create<FrameWizardStore>((set, get) => ({
   lenses: [],
   cameras: [],
   fluorescenceOptions: [],
+  fluoBundles: [],
   isLoading: false,
 
   setStep: (step) => set({ currentStep: Math.max(0, Math.min(step, TOTAL_STEPS - 1)) }),
@@ -135,6 +141,7 @@ export const useFrameWizardStore = create<FrameWizardStore>((set, get) => ({
   setLenses: (lenses) => set({ lenses }),
   setCameras: (cameras) => set({ cameras }),
   setFluorescenceOptions: (options) => set({ fluorescenceOptions: options }),
+  setFluoBundles: (bundles) => set({ fluoBundles: bundles }),
   setIsLoading: (loading) => set({ isLoading: loading }),
 
   getSelectedComponents: () => {
@@ -199,7 +206,10 @@ export const useFrameWizardStore = create<FrameWizardStore>((set, get) => ({
     }
 
     // Fluorescence (dichroic + light source).
-    if (wizardState.hasFluorescence && wizardState.fluoLightSource !== 'none') {
+    if (wizardState.hasFluorescence && wizardState.fluoBundle && wizardState.fluoBundle !== 'bundle-custom') {
+      components.push({ moduleId: 'filter-dichroic', gridPos: [4, 6, 0], rotation: [0, 180, 0] });
+      components.push({ moduleId: 'led-470nm', gridPos: [7, 6, 0], rotation: [0, 0, 0] });
+    } else if (wizardState.hasFluorescence && wizardState.fluoLightSource !== 'none') {
       components.push({ moduleId: 'filter-dichroic', gridPos: [4, 6, 0], rotation: [0, 180, 0] });
       components.push({ moduleId: 'led-470nm', gridPos: [7, 6, 0], rotation: [0, 0, 0] });
     }
@@ -250,12 +260,19 @@ export const useFrameWizardStore = create<FrameWizardStore>((set, get) => ({
     total += CONDENSER_PRICE[wizardState.condenser] || 0;
 
     if (wizardState.hasFluorescence) {
-      total += FLUO_LIGHT_PRICE[wizardState.fluoLightSource] || 0;
-      total += DICHROIC_PRICE[wizardState.dichroic] || 0;
-      wizardState.fluorescenceChannels.forEach((chId) => {
-        const ch = fluorescenceOptions.find((f) => f.id === chId);
-        if (ch) total += ch.price_filterSet;
-      });
+      if (wizardState.fluoBundle) {
+        // New bundle-based pricing: bundle price already includes light source + filter set.
+        const bundle = get().fluoBundles.find((b) => b.id === wizardState.fluoBundle);
+        if (bundle) total += bundle.price;
+      } else {
+        // Legacy fallback.
+        total += FLUO_LIGHT_PRICE[wizardState.fluoLightSource] || 0;
+        total += DICHROIC_PRICE[wizardState.dichroic] || 0;
+        wizardState.fluorescenceChannels.forEach((chId) => {
+          const ch = fluorescenceOptions.find((f) => f.id === chId);
+          if (ch) total += ch.price_filterSet;
+        });
+      }
     }
 
     if (wizardState.selectedCamera) {
@@ -300,6 +317,11 @@ export const useFrameWizardStore = create<FrameWizardStore>((set, get) => ({
       case 3: {
         // Fluorescence
         if (!wizardState.hasFluorescence) return 0;
+        if (wizardState.fluoBundle) {
+          const bundle = get().fluoBundles.find((b) => b.id === wizardState.fluoBundle);
+          return bundle?.price || 0;
+        }
+        // Legacy fallback.
         let p =
           (FLUO_LIGHT_PRICE[wizardState.fluoLightSource] || 0) +
           (DICHROIC_PRICE[wizardState.dichroic] || 0);

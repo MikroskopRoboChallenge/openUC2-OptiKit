@@ -3,6 +3,7 @@ import type {
   LensOption,
   CameraOption,
   FluorescenceOption,
+  FluoBundleOption,
 } from '../types/frameWizard';
 
 function parseLibraryCSV(csvText: string): Record<string, string>[] {
@@ -146,12 +147,41 @@ export async function loadFluorescenceOptions(): Promise<FluorescenceOption[]> {
   }
 }
 
+export async function loadFluoBundles(): Promise<FluoBundleOption[]> {
+  try {
+    const response = await fetch('/configurator/fluo_bundles_library.csv');
+    if (!response.ok) return [];
+    const text = await response.text();
+    const rows = parseLibraryCSV(text);
+    return rows.map((row) => ({
+      id: row.id,
+      name: row.name,
+      category: (row.category || 'custom') as FluoBundleOption['category'],
+      excitationWavelengths_nm: row.excitationWavelengths_nm
+        ? row.excitationWavelengths_nm.split('|').map(Number).filter(Boolean)
+        : [],
+      filterSetDescription: row.filterSetDescription || '',
+      exFilters: row.exFilters ? row.exFilters.split('|').map((s) => s.trim()) : [],
+      emFilters: row.emFilters ? row.emFilters.split('|').map((s) => s.trim()) : [],
+      dichroicEdges: row.dichroicEdges ? row.dichroicEdges.split('|').map((s) => s.trim()) : [],
+      manufacturer: row.manufacturer || '',
+      price: parseFloat(row.price) || 0,
+      channelColors: row.channelColors ? row.channelColors.split('|').map((s) => s.trim()) : ['#888'],
+      compatibleDyes: row.compatibleDyes || '',
+    }));
+  } catch (error) {
+    console.error('Failed to load fluorescence bundle library:', error);
+    return [];
+  }
+}
+
 export async function loadAllLibraries() {
-  const [objectives, lenses, cameras, fluorescence] = await Promise.all([
+  const [objectives, lenses, cameras, fluorescence, fluoBundles] = await Promise.all([
     loadObjectives(),
     loadLenses(),
     loadCameras(),
     loadFluorescenceOptions(),
+    loadFluoBundles(),
   ]);
-  return { objectives, lenses, cameras, fluorescence };
+  return { objectives, lenses, cameras, fluorescence, fluoBundles };
 }

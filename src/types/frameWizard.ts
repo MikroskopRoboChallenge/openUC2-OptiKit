@@ -99,6 +99,36 @@ export type FluoLightSource =
 
 export type DichroicChoice = 'none' | 'single-cn' | 'dual-cn' | 'multi-ahf';
 
+/** Hardware bundle: light source + matching filter set sold together. */
+export type FluoBundleCategory =
+  | 'led-single'
+  | 'led-quad'
+  | 'laser-single'
+  | 'laser-dual'
+  | 'laser-quad'
+  | 'custom';
+
+export interface FluoBundleOption {
+  id: string;
+  name: string;
+  category: FluoBundleCategory;
+  /** Parsed excitation wavelengths in nm (pipe-separated in CSV). */
+  excitationWavelengths_nm: number[];
+  filterSetDescription: string;
+  /** Excitation filter specs, one per channel (pipe-separated in CSV). */
+  exFilters: string[];
+  /** Emission filter specs, one per channel (pipe-separated in CSV). */
+  emFilters: string[];
+  /** Dichroic edge spec(s). */
+  dichroicEdges: string[];
+  manufacturer: string;
+  price: number;
+  /** Hex colours matching each excitation channel (pipe-separated in CSV). */
+  channelColors: string[];
+  /** Human-readable compatible dye list for display. */
+  compatibleDyes: string;
+}
+
 // --- WP7: Sample holder ---
 export type SampleHolderChoice =
   | 'none'
@@ -121,6 +151,11 @@ export interface FrameWizardState {
   brightfieldModes: BrightfieldMode[];
   // Step 4: Fluorescence (WP6)
   hasFluorescence: boolean;
+  /** ID of the selected hardware bundle from fluo_bundles_library.csv, or '' for none. */
+  fluoBundle: string;
+  /** Free-text notes for custom setup or experiment description. */
+  fluoCustomNotes: string;
+  // Legacy fields – kept for preset backward compat, not used in the new UI.
   fluoLightSource: FluoLightSource;
   dichroic: DichroicChoice;
   fluorescenceChannels: string[];

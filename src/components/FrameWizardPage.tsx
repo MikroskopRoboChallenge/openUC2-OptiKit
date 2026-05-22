@@ -59,6 +59,7 @@ export function FrameWizardPage() {
     setLenses,
     setCameras,
     setFluorescenceOptions,
+    setFluoBundles,
     getTotalPrice,
     getStepPrice,
     getSelectedComponents,
@@ -70,14 +71,15 @@ export function FrameWizardPage() {
 
   useEffect(() => {
     setIsLoading(true);
-    loadAllLibraries().then(({ objectives, lenses, cameras, fluorescence }) => {
+    loadAllLibraries().then(({ objectives, lenses, cameras, fluorescence, fluoBundles }) => {
       setObjectives(objectives);
       setLenses(lenses);
       setCameras(cameras);
       setFluorescenceOptions(fluorescence);
+      setFluoBundles(fluoBundles);
       setIsLoading(false);
     });
-  }, [setObjectives, setLenses, setCameras, setFluorescenceOptions, setIsLoading]);
+  }, [setObjectives, setLenses, setCameras, setFluorescenceOptions, setFluoBundles, setIsLoading]);
 
   const handleOpenInCanvas = useCallback(() => {
     const components = getSelectedComponents();

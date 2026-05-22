@@ -1,0 +1,14 @@
+id;name;category;excitationWavelengths_nm;filterSetDescription;exFilters;emFilters;dichroicEdges;manufacturer;price;channelColors;compatibleDyes
+bundle-led-405;openUC2 LED 405 nm – DAPI/Hoechst set;led-single;405;Ex 377/50 + Dichroic 409LP + Em 447/60;377/50;447/60;409LP;openUC2;280;#6060ff;DAPI, Hoechst 33342, BV421, CF405M
+bundle-led-470;openUC2 LED 470 nm – GFP/FITC set;led-single;470;Ex 470/40 + Dichroic 495LP + Em 525/50;470/40;525/50;495LP;openUC2;280;#00cc44;EGFP, GFP, FITC, Alexa 488, CF488A
+bundle-led-525;openUC2 LED 525 nm – Cy3/mCherry set;led-single;525;Ex 546/20 + Dichroic 560LP + Em 590/50;546/20;590/50;560LP;openUC2;280;#ff7700;Cy3, TRITC, mCherry, mKO, Alexa 532
+bundle-led-635;openUC2 LED 635 nm – Cy5/SiR set;led-single;635;Ex 640/30 + Dichroic 660LP + Em 700/60;640/30;700/60;660LP;openUC2;280;#cc44ff;Cy5, Alexa 647, SiR-DNA, SiR-Actin
+bundle-led-730;openUC2 LED 730 nm – Cy7/near-IR set;led-single;730;Ex 747/33 + Dichroic 765LP + Em 810/60;747/33;810/60;765LP;openUC2;280;#770000;Cy7, IR800CW, Alexa 700, AF750
+bundle-led-quad-kaya;Kaya Optics Quad-LED 405/470/525/635 + quad filter;led-quad;405|470|525|635;4-ch LED engine + AHF quad-band filter cube (Ex405/470/546/640 + Em447/525/590/700);405/470/546/640;447/525/590/700;quad-AHF;Kaya Optics;1400;#6060ff|#00cc44|#ff7700|#cc44ff;DAPI, GFP, Cy3, Cy5 (4-color)
+bundle-laser-405;openUC2 Fiber Laser 405 nm – DAPI set;laser-single;405;Ex 377/50 + Dichroic 409LP + Em 447/60;377/50;447/60;409LP;openUC2;1200;#6060ff;DAPI, Hoechst 33342, BV421
+bundle-laser-488;openUC2 Fiber Laser 488 nm – GFP set;laser-single;488;Ex 470/40 + Dichroic 495LP + Em 525/50;470/40;525/50;495LP;openUC2;1200;#00cc44;EGFP, GFP, FITC, Alexa 488
+bundle-laser-532;openUC2 Fiber Laser 532 nm – Cy3 set;laser-single;532;Ex 532/10 + Dichroic 560LP + Em 590/50;532/10;590/50;560LP;openUC2;1200;#ff7700;Cy3, TRITC, mCherry, Alexa 532
+bundle-laser-638;openUC2 Fiber Laser 638 nm – Cy5 set;laser-single;638;Ex 640/30 + Dichroic 660LP + Em 700/60;640/30;700/60;660LP;openUC2;1200;#cc44ff;Cy5, Alexa 647, SiR-DNA, SiR-Actin
+bundle-laser-dual;openUC2 Dual Laser 488+638 – GFP+Cy5 set;laser-dual;488|638;Dual-band dichroic + Ex 470/40 & 640/30 + Em 525/50 & 700/60;470/40|640/30;525/50|700/60;dual-495/660;openUC2;2200;#00cc44|#cc44ff;GFP + Cy5 (two-colour)
+bundle-laser-quad;openUC2 Quad Laser 405+488+532+638 – full set;laser-quad;405|488|532|638;Quad-band dichroic (AHF) + 4-port emission filter;405/470/532/640;447/525/590/700;quad-AHF;openUC2;3800;#6060ff|#00cc44|#ff7700|#cc44ff;DAPI, GFP, Cy3, Cy5 (full laser multicolour)
+bundle-custom;Bring your own source & filters;custom;;Custom hardware – describe your setup in the notes below;;;Custom;0;#888888;Custom
